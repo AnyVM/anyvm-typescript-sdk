@@ -1,0 +1,1 @@
+**NOTE**: These examples are tested to work with the [latest SDK published to npmjs](https://www.npmjs.com/package/@anyvm/moveup-sdk), not the SDK in the parent directory. Accordingly, these examples should be run against devnet. This is how the examples work by default.
