@@ -660,7 +660,7 @@ export abstract class Transaction {
 
   getHashSalt(): Bytes {
     const hash = sha3Hash.create();
-    hash.update("APTOS::Transaction");
+    hash.update("MOVEUP::Transaction");
     return hash.digest();
   }
 

@@ -12487,7 +12487,7 @@
           "type": "0x1::coin::CoinInfo<0x1::eth::ETH>",
           "data": {
             "decimals": 8,
-            "name": "Aptos Coin",
+            "name": "Moveup Coin",
             "supply": {
               "vec": [
                 {
@@ -29617,7 +29617,7 @@
                         "source_map": "0x"
                       }
                     ],
-                    "name": "AptosStdlib",
+                    "name": "MoveupStdlib",
                     "source_digest": "7007BAD4C72C48617CF8C91A058B69271477CB8409C62BBCF736924C6E1F742A",
                     "upgrade_number": "0",
                     "upgrade_policy": {
@@ -29628,7 +29628,7 @@
                     "deps": [
                       {
                         "account": "0x1",
-                        "package_name": "AptosStdlib"
+                        "package_name": "MoveupStdlib"
                       },
                       {
                         "account": "0x1",
@@ -29929,7 +29929,7 @@
                         "source_map": "0x"
                       }
                     ],
-                    "name": "AptosFramework",
+                    "name": "MoveupFramework",
                     "source_digest": "24C3B8B6B045BBB3C2F15BC8995352B4D66C08500FA9DB9BAF91ED572D2E3A14",
                     "upgrade_number": "0",
                     "upgrade_policy": {
@@ -29948,7 +29948,7 @@
               "type": "0x1::coin::CoinInfo<0x1::eth::ETH>",
               "data": {
                 "decimals": 8,
-                "name": "Aptos Coin",
+                "name": "Moveup Coin",
                 "supply": {
                   "vec": [
                     {
@@ -33731,11 +33731,11 @@
                     "deps": [
                       {
                         "account": "0x1",
-                        "package_name": "AptosFramework"
+                        "package_name": "MoveupFramework"
                       },
                       {
                         "account": "0x1",
-                        "package_name": "AptosStdlib"
+                        "package_name": "MoveupStdlib"
                       },
                       {
                         "account": "0x1",
@@ -33780,7 +33780,7 @@
                         "source_map": "0x"
                       }
                     ],
-                    "name": "AptosToken",
+                    "name": "MoveupToken",
                     "source_digest": "0410DD7560F86F614E9C5C28EC4E943623EF6FA0781D125B175785CC558A0A69",
                     "upgrade_number": "0",
                     "upgrade_policy": {
