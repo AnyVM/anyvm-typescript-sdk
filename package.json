@@ -35,11 +35,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/MoveupLabs/moveup.git"
+    "url": "https://github.com/MoveupLabs/moveup-typescript-sdk.git"
   },
-  "homepage": "https://github.com/MoveupLabs/moveup",
+  "homepage": "https://github.com/MoveupLabs/moveup-typescript-sdk",
   "bugs": {
-    "url": "https://github.com/MoveupLabs/moveup/issues"
+    "url": "https://github.com/MoveupLabs/moveup-typescript-sdk/issues"
   },
   "author": "moveuplabs.com",
   "keywords": [
@@ -87,5 +87,5 @@
     "typedoc": "^0.23.20",
     "typescript": "4.8.2"
   },
-  "version": "1.0.0"
+  "version": "1.1.0"
 }
