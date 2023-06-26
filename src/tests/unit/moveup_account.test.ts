@@ -22,8 +22,8 @@ test("generates random accounts", () => {
 });
 
 test("generates derive path accounts", () => {
-  const address = "0x3dfbb1f1e8fa70931afcd3e0074071e340ff55ed";
-  const a1 = MoveupAccount.fromDerivePath("m/44'/637'/0'/0'/0'", mnemonic);
+  const address = "0x8f348f300873fd5da36950b2ac75a26584584fee";
+  const a1 = MoveupAccount.fromDerivePath("m/44'/60'/0'/0'/0'", mnemonic);
   expect(a1.address().hex()).toBe(address);
 });
 

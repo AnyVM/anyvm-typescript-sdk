@@ -4,10 +4,9 @@
 // import nacl from "tweetnacl";
 import { ec } from 'elliptic';
 import { ecsign } from 'ethereumjs-util';
-import * as bip39 from "@scure/bip39";
-import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
+import { ethers } from 'ethers';
+import { hexToBytes } from "@noble/hashes/utils";
 import { keccak_256, sha3_256 as sha3Hash } from "@noble/hashes/sha3";
-import { derivePath } from "../utils/hd-key";
 import { HexString, MaybeHexString, Memoize } from "../utils";
 import * as Gen from "../generated/index";
 import { AccountAddress, AuthenticationKey, Secp256k1PublicKey } from "../moveup_types";
@@ -43,7 +42,7 @@ export class MoveupAccount {
    * Test derive path
    */
   static isValidPath = (path: string): boolean => {
-    if (!/^m\/44'\/637'\/[0-9]+'\/[0-9]+'\/[0-9]+'+$/.test(path)) {
+    if (!/^m\/44'\/60'\/[0-9]+'\/[0-9]+'\/[0-9]+'+$/.test(path)) {
       return false;
     }
     return true;
@@ -51,7 +50,7 @@ export class MoveupAccount {
 
   /**
    * Creates new account with bip44 path and mnemonics,
-   * @param path. (e.g. m/44'/637'/0'/0'/0')
+   * @param path. (e.g. m/44'/60'/0'/0'/0')
    * Detailed description: {@link https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki}
    * @param mnemonics.
    * @returns MoveupAccount
@@ -67,9 +66,10 @@ export class MoveupAccount {
       .map((part) => part.toLowerCase())
       .join(" ");
 
-    const { key } = derivePath(path, bytesToHex(bip39.mnemonicToSeedSync(normalizeMnemonics)));
+    const hdNodeWallet = ethers.HDNodeWallet.fromPhrase(normalizeMnemonics);
+    const key = hdNodeWallet.privateKey;
 
-    return new MoveupAccount(key);
+    return new MoveupAccount(hexToBytes(key.slice(-64)));
   }
 
   /**
@@ -144,10 +144,7 @@ export class MoveupAccount {
    * @returns A signature HexString
    */
   signBuffer(buffer: Uint8Array): HexString {
-    // console.log('buffer is : ', bytesToHex(buffer));
     const bufferHash = keccak_256(buffer);
-    // console.log('bufferHash is : ', bytesToHex(bufferHash));
-    // console.log('primary key is : ', this.signingKey.getPrivate('hex'));
     const { v, r, s } = ecsign(Buffer.from(bufferHash), Buffer.from(hexToBytes(this.signingKey.getPrivate('hex'))));
 
     const signatureBuffer = Buffer.concat([
@@ -157,9 +154,6 @@ export class MoveupAccount {
     ]);
 
     const signatureHex = signatureBuffer.toString('hex').slice(0,128);
-    // console.log('signature is : ', signatureHex);
-    // const signature = ellipticCurve.sign(bufferHash, this.signingKey, "hex");
-    // console.log('signature is : ', signature.toDER("hex").slice(-128));
     return new HexString(signatureHex);
   }
 
