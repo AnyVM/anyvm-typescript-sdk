@@ -38,6 +38,7 @@ export class MoveupGeneratedClient {
             PASSWORD: config?.PASSWORD,
             HEADERS: config?.HEADERS,
             ENCODE_PATH: config?.ENCODE_PATH,
+            USEFETCHADAPTER: config?.USEFETCHADAPTER ?? false,
         });
 
         this.accounts = new AccountsService(this.request);

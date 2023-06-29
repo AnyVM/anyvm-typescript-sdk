@@ -14,7 +14,6 @@ test(
     const faucetClient = getFaucetClient();
     const coinClient = new CoinClient(client);
 
-    // const alice = new MoveupAccount(hexToBytes('1bac4a35ec3eb1afbce9ec8deb926fc6fba11218888aea4ba216154c38ae89ad'));
     const alice = new MoveupAccount();
     const bob = new MoveupAccount();
     await faucetClient.fundAccount(alice.address(), 100_000_000);

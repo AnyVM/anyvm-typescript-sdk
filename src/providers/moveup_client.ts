@@ -85,6 +85,16 @@ export class MoveupClient {
       conf.WITH_CREDENTIALS = true;
     }
 
+    if (typeof config?.USEFETCHADAPTER === 'undefined') {
+      conf.USEFETCHADAPTER = false;
+    } else {
+      if (config?.USEFETCHADAPTER === false) {
+        conf.USEFETCHADAPTER = false;
+      } else {
+        conf.USEFETCHADAPTER = true;
+      }
+    }
+
     this.client = new Gen.MoveupGeneratedClient(conf);
   }
 

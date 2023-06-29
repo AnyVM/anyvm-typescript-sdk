@@ -1,6 +1,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+
+import fetchAdapter from '@vespaiach/axios-fetch-adapter';
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import FormData from 'form-data';
@@ -309,6 +311,7 @@ const sendRequest = async <T>(
         method: options.method,
         withCredentials: config.WITH_CREDENTIALS,
         cancelToken: source.token,
+        ...(config.USEFETCHADAPTER ? { adapter: fetchAdapter } : {}),
     };
 
     const isBCS = Object.keys(config.HEADERS || {})
