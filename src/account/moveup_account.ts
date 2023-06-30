@@ -66,8 +66,8 @@ export class MoveupAccount {
       .map((part) => part.toLowerCase())
       .join(" ");
 
-    const hdNodeWallet = ethers.HDNodeWallet.fromPhrase(normalizeMnemonics);
-    const key = hdNodeWallet.privateKey;
+    const ethersWallet = ethers.Wallet.fromMnemonic(normalizeMnemonics);
+    const key = ethersWallet.privateKey;
 
     return new MoveupAccount(hexToBytes(key.slice(-64)));
   }
