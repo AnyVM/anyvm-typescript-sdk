@@ -2,7 +2,9 @@
 /* tslint:disable */
 /* eslint-disable */
 
-import fetchAdapter from '@vespaiach/axios-fetch-adapter';
+// const fetchAdapter = typeof window !== 'undefined' ? 
+//   import('@vespaiach/axios-fetch-adapter') :
+//   null;
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import FormData from 'form-data';
@@ -311,7 +313,7 @@ const sendRequest = async <T>(
         method: options.method,
         withCredentials: config.WITH_CREDENTIALS,
         cancelToken: source.token,
-        ...(config.USEFETCHADAPTER ? { adapter: fetchAdapter } : {}),
+        ...(config.USEFETCHADAPTER ? { adapter: (await import('@vespaiach/axios-fetch-adapter')).default } : {}),
     };
 
     const isBCS = Object.keys(config.HEADERS || {})
