@@ -12,7 +12,7 @@ import path from "path";
 // import nacl from "tweetnacl";
 import { ec } from 'elliptic';
 import fs from "fs";
-import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
+import { bytesToHex } from "@noble/hashes/utils";
 import {
   AccountAddress,
   ChainId,
@@ -44,7 +44,7 @@ import {
 import { HexString } from "../../utils";
 import { TransactionBuilderSecp256k1 } from "../../transaction_builder/builder";
 import { keccak_256 } from "@noble/hashes/sha3";
-import { ecsign } from "ethereumjs-util";
+import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
 
 const ellipticCurve = new ec('secp256k1');
 
@@ -145,21 +145,9 @@ function parseTransactionArgument(arg: any): TransactionArgument {
 }
 
 function secp256k1Sign(signingMessage:Uint8Array, signingKey:ec.KeyPair) {
-  // console.log('buffer is : ', bytesToHex(signingMessage));
-    const bufferHash = keccak_256(signingMessage);
-    // console.log('bufferHash is : ', bytesToHex(bufferHash));
-    // console.log('primary key is : ', signingKey.getPrivate('hex'));
-    const { v, r, s } = ecsign(Buffer.from(bufferHash), Buffer.from(hexToBytes(signingKey.getPrivate('hex'))));
-
-    const signatureBuffer = Buffer.concat([
-      r,
-      s,
-      Buffer.from([v])
-    ]);
-
-    const signatureHex = signatureBuffer.toString('hex').slice(0,128);
-    // console.log('signature is : ', signatureHex);
-    return new Secp256k1Signature(new HexString(signatureHex).toUint8Array());
+  const bufferHash = keccak_256(signingMessage);
+  const signatureHex = secp256k1.sign(bytesToHex(bufferHash), signingKey.getPrivate('hex')).toCompactHex();
+  return new Secp256k1Signature(new HexString(signatureHex).toUint8Array());
 }
 
 function sign(rawTxn: RawTransaction, privateKey: string): string {
