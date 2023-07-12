@@ -1,4 +1,4 @@
-import { MoveupClient, ApiError, Provider } from "../providers";
+import { MoveupClient, ApiError, Provider, OptionalTransactionArgs } from "../providers";
 import * as Gen from "../generated/index";
 import { MoveupAccount } from "../account";
 import { TransactionBuilderRemoteABI } from "../transaction_builder";
@@ -104,7 +104,12 @@ export class AnsClient {
    * @param years year duration of the domain name
    * @returns The hash of the pending transaction submitted to the API
    */
-  async mintMoveupName(account: MoveupAccount, domainName: string, years: number = 1): Promise<Gen.HashValue> {
+  async mintMoveupName(
+    account: MoveupAccount,
+    domainName: string,
+    years: number = 1,
+    extraArgs?: OptionalTransactionArgs,
+  ): Promise<Gen.HashValue> {
     // check if the name is valid
     if (domainName.match(nameComponentPattern) === null) {
       throw new ApiError(400, `Name ${domainName} is not valid`);
@@ -115,11 +120,34 @@ export class AnsClient {
       throw new ApiError(400, `Name ${domainName} is not available`);
     }
 
-    const builder = new TransactionBuilderRemoteABI(this.provider.moveupClient, { sender: account.address() });
+    const builder = new TransactionBuilderRemoteABI(this.provider.moveupClient, {
+      sender: account.address(),
+      ...extraArgs,
+    });
     const rawTxn = await builder.build(`${this.contractAddress}::domains::register_domain`, [], [domainName, years]);
 
     const bcsTxn = MoveupClient.generateBCSTransaction(account, rawTxn);
-    const pendingTransaction = await this.provider.moveupClient.submitSignedBCSTransaction(bcsTxn);
+    const pendingTransaction = await this.provider.submitSignedBCSTransaction(bcsTxn);
+
+    return pendingTransaction.hash;
+  }
+
+  /**
+   * Initialize reverse lookup for contract owner
+   *
+   * @param owner the `moveup_names` MoveupAccount
+   * @returns The hash of the pending transaction submitted to the API
+   */
+  async initReverseLookupRegistry(owner: MoveupAccount, extraArgs?: OptionalTransactionArgs): Promise<Gen.HashValue> {
+    const builder = new TransactionBuilderRemoteABI(this.provider.moveupClient, {
+      sender: owner.address(),
+      ...extraArgs,
+    });
+    const rawTxn = await builder.build(`${this.contractAddress}::domains::init_reverse_lookup_registry_v1`, [], []);
+
+    const bcsTxn = MoveupClient.generateBCSTransaction(owner, rawTxn);
+    const pendingTransaction = await this.provider.submitSignedBCSTransaction(bcsTxn);
+
     return pendingTransaction.hash;
   }
 

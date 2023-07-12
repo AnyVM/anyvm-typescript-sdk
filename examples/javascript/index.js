@@ -2,8 +2,8 @@ require("dotenv").config();
 
 const moveup = require("@anyvm/moveup-sdk");
 
-const NODE_URL = process.env.MOVEUP_NODE_URL || "https://fullnode.devnet.moveuplabs.com";
-const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveuplabs.com";
+const NODE_URL = process.env.MOVEUP_NODE_URL;
+const FAUCET_URL = process.env.MOVEUP_FAUCET_URL;
 
 const moveupCoin = "0x1::coin::CoinStore<0x1::eth::ETH>";
 

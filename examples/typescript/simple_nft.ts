@@ -38,8 +38,8 @@ import { NODE_URL, FAUCET_URL } from "./common";
 
   // Fund accounts.
   // :!:>section_3
-  await faucetClient.fundAccount(alice.address(), 100_000_000);
-  await faucetClient.fundAccount(bob.address(), 100_000_000); // <:!:section_3
+  await faucetClient.fundAccount(alice.address(), 1_000_000_000_000_000_000);
+  await faucetClient.fundAccount(bob.address(), 1_000_000_000_000_000_000); // <:!:section_3
 
   console.log("=== Initial Coin Balances ===");
   console.log(`Alice: ${await coinClient.checkBalance(alice)}`);
@@ -139,7 +139,7 @@ import { NODE_URL, FAUCET_URL } from "./common";
   const bobBalance2 = await tokenClient.getTokenForAccount(bob.address(), tokenId);
   console.log(`Alice's token balance: ${aliceBalance2["amount"]}`);
   console.log(`Bob's token balance: ${bobBalance2["amount"]}`);
-
+/*
   console.log("\n=== Transferring the token back to Alice using MultiAgent ===");
   // :!:>section_11
   let txnHash5 = await tokenClient.directTransferToken(
@@ -185,4 +185,5 @@ import { NODE_URL, FAUCET_URL } from "./common";
   console.log("\n=== Getting Bob's NFTs ===");
   const bobNfts = await provider.getAccountNFTs(bob.address().hex());
   console.log(`Bob current token ownership: ${bobNfts.current_token_ownerships.length}. Should be 0`);
+*/
 })();

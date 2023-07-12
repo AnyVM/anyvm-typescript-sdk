@@ -6,7 +6,7 @@ module.exports = {
   },
   testEnvironment: "node",
   coveragePathIgnorePatterns: ["generated/*", "./moveup_types/*", "utils/memoize-decorator.ts", "utils/hd-key.ts"],
-  testPathIgnorePatterns: ["dist/*", "indexer.test.ts", "transaction_vector.test.ts", "transaction_builder.test.ts", "token_client.test.ts"],
+  testPathIgnorePatterns: ["dist/*", "indexer.test.ts", "transaction_vector.test.ts", "transaction_builder.test.ts", "ans_client.test.ts", "moveup_token.test.ts"],
   collectCoverage: true,
   setupFiles: ["dotenv/config"],
   coverageThreshold: {

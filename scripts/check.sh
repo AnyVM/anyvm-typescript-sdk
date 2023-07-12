@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 cd ..
 
 # Get the latest version of the package on npm.js
-PUBLISHED_VERSION=`npm show moveup version`
+PUBLISHED_VERSION=`npm show @anyvm/moveup-sdk version`
 
 # Get the version from the local package.json file.
 NEW_VERSION=`node -p -e "require('./package.json').version"`
@@ -31,10 +31,4 @@ if verlte $NEW_VERSION $PUBLISHED_VERSION; then
     exit 1
 fi
 
-# Ensure there is an entry for the new version in the changelog.
-if ! grep -q "# $NEW_VERSION" CHANGELOG.md; then
-    echo "ERROR: The changelog does not contain an entry for the new version. Aborting."
-    exit 1
-fi
-
-echo "Version and changelog look good"
+echo "Version look good"

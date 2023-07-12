@@ -6,16 +6,20 @@ import { IndexerClient } from "../../providers/indexer";
 import { TokenClient } from "../../plugins/token_client";
 import { FAUCET_AUTH_TOKEN, NODE_URL, FAUCET_URL, longTestTimeout } from "../unit/test_helper.test";
 import { Network, NetworkToIndexerAPI, NetworkToNodeAPI, sleep } from "../../utils";
+import { Provider } from "../../providers";
+import { MoveupToken } from "../../plugins";
 
-const moveupClient = new MoveupClient(NetworkToNodeAPI[Network.TESTNET]);
+const provider = new Provider(Network.TESTNET);
+const moveupToken = new MoveupToken(provider);
 const faucetClient = new FaucetClient(
     NODE_URL,
     FAUCET_URL,
   { TOKEN: FAUCET_AUTH_TOKEN },
 );
-const tokenClient = new TokenClient(moveupClient);
+const tokenClient = new TokenClient(provider.moveupClient);
 const alice = new MoveupAccount();
 const collectionName = "AliceCollection";
+const collectionNameV2 = "AliceCollection2";
 const tokenName = "Alice Token";
 const indexerClient = new IndexerClient(NetworkToIndexerAPI[Network.TESTNET]);
 
@@ -39,11 +43,11 @@ describe("Indexer", () => {
   beforeAll(async () => {
     await faucetClient.fundAccount(alice.address(), 100000000);
     // Create collection and token on Alice's account
-    await moveupClient.waitForTransaction(
+    await provider.waitForTransaction(
       await tokenClient.createCollection(alice, collectionName, "Alice's simple collection", "https://moveup.dev"),
       { checkSuccess: true },
     );
-    await moveupClient.waitForTransaction(
+    await provider.waitForTransaction(
       await tokenClient.createTokenWithMutabilityConfig(
         alice,
         collectionName,
@@ -59,6 +63,28 @@ describe("Indexer", () => {
         [bcsSerializeBool(true)],
         ["bool"],
         [false, false, false, false, true],
+      ),
+      { checkSuccess: true },
+    );
+
+    await provider.waitForTransaction(
+      await moveupToken.createCollection(alice, "Alice's simple collection", collectionNameV2, "https://moveup.dev", 5, {
+        royaltyNumerator: 10,
+        royaltyDenominator: 10,
+      }),
+      { checkSuccess: true },
+    );
+
+    await provider.waitForTransactionWithResult(
+      await moveupToken.mint(
+        alice,
+        collectionNameV2,
+        "Alice's simple token",
+        tokenName,
+        "https://moveup.dev/img/nyan.jpeg",
+        ["key"],
+        ["bool"],
+        ["true"],
       ),
       { checkSuccess: true },
     );
@@ -187,9 +213,73 @@ describe("Indexer", () => {
       longTestTimeout,
     );
 
-    test("gets indexer ledger info", async () => {
+    it(
+      "gets number of delegators",
+      async () => {
+        const numberOfDelegators = await indexerClient.getNumberOfDelegators(alice.address().hex());
+        expect(numberOfDelegators.num_active_delegator_per_pool).toHaveLength(0);
+      },
+      longTestTimeout,
+    );
+
+    it("gets indexer ledger info", async () => {
       const ledgerInfo = await indexerClient.getIndexerLedgerInfo();
       expect(ledgerInfo.ledger_infos[0].chain_id).toBeGreaterThan(1);
     });
+
+    it("gets account current tokens", async () => {
+      const tokens = await indexerClient.getOwnedTokens(alice.address().hex());
+      expect(tokens.current_token_ownerships_v2).toHaveLength(2);
+    });
+
+    it("gets the collection data", async () => {
+      const collectionData = await indexerClient.getCollectionData(alice.address().hex(), collectionName);
+      expect(collectionData.current_collections_v2).toHaveLength(1);
+      expect(collectionData.current_collections_v2[0].collection_name).toEqual(collectionName);
+    });
+
+    it("gets the currect collection address", async () => {
+      const collectionData = await indexerClient.getCollectionData(alice.address().hex(), collectionNameV2);
+      const collectionAddress = await indexerClient.getCollectionAddress(alice.address().hex(), collectionNameV2);
+      expect(collectionData.current_collections_v2[0].collection_id).toEqual(collectionAddress);
+    });
+
+    it(
+      "gets account current tokens of a specific collection by the collection address with token standard specified",
+      async () => {
+        const tokens = await indexerClient.getTokenOwnedFromCollectionNameAndCreatorAddress(
+          alice.address().hex(),
+          collectionNameV2,
+          alice.address().hex(),
+          {
+            tokenStandard: "v2",
+          },
+        );
+        expect(tokens.current_token_ownerships_v2).toHaveLength(1);
+        expect(tokens.current_token_ownerships_v2[0].token_standard).toEqual("v2");
+      },
+      longTestTimeout,
+    );
+
+    it(
+      "returns same result for getTokenOwnedFromCollectionNameAndCreatorAddress and getTokenOwnedFromCollectionAddress",
+      async () => {
+        const collectionAddress = await indexerClient.getCollectionAddress(alice.address().hex(), collectionNameV2);
+        const tokensFromCollectionAddress = await indexerClient.getTokenOwnedFromCollectionAddress(
+          alice.address().hex(),
+          collectionAddress,
+        );
+        const tokensFromNameAndCreatorAddress = await indexerClient.getTokenOwnedFromCollectionNameAndCreatorAddress(
+          alice.address().hex(),
+          collectionNameV2,
+          alice.address().hex(),
+        );
+
+        expect(tokensFromCollectionAddress.current_token_ownerships_v2).toEqual(
+          tokensFromNameAndCreatorAddress.current_token_ownerships_v2,
+        );
+      },
+      longTestTimeout,
+    );
   });
 });

@@ -3,14 +3,15 @@
 
 // import nacl from "tweetnacl";
 import { ec } from 'elliptic';
-import { ecsign } from 'ethereumjs-util';
+import { ecsign, fromRpcSig, ecrecover, pubToAddress } from 'ethereumjs-util';
 import { ethers } from 'ethers';
-import { hexToBytes } from "@noble/hashes/utils";
+import { hexToBytes, bytesToHex } from "@noble/hashes/utils";
 import { keccak_256, sha3_256 as sha3Hash } from "@noble/hashes/sha3";
 import { HexString, MaybeHexString, Memoize } from "../utils";
 import * as Gen from "../generated/index";
 import { AccountAddress, AuthenticationKey, Secp256k1PublicKey } from "../moveup_types";
 import { bcsToBytes } from "../bcs";
+import { arrayify } from 'ethers/lib/utils';
 
 export interface MoveupAccountObject {
   address?: Gen.HexEncodedBytes;
@@ -146,13 +147,13 @@ export class MoveupAccount {
   signBuffer(buffer: Uint8Array): HexString {
     const bufferHash = keccak_256(buffer);
     const { v, r, s } = ecsign(Buffer.from(bufferHash), Buffer.from(hexToBytes(this.signingKey.getPrivate('hex'))));
-
+    
     const signatureBuffer = Buffer.concat([
       r,
       s,
       Buffer.from([v])
     ]);
-
+    
     const signatureHex = signatureBuffer.toString('hex').slice(0,128);
     return new HexString(signatureHex);
   }
@@ -165,6 +166,38 @@ export class MoveupAccount {
   signHexString(hexString: MaybeHexString): HexString {
     const toSign = HexString.ensure(hexString).toUint8Array();
     return this.signBuffer(toSign);
+  }
+
+  /**
+   * Verifies the signature of the message with the public key of the account
+   * @param message a signed message
+   * @param signature the signature of the message
+   */
+  verifySignature(message: MaybeHexString, signature: MaybeHexString): boolean {
+    const rawMessage = HexString.ensure(message).toUint8Array();
+    const messageHash = keccak_256(rawMessage);
+    
+    // EIP-2098; pull the v from the top bit of s and clear it
+    let signatureBytes: Uint8Array = arrayify(HexString.ensure(signature).toString());
+    
+    let resultV = 27 + (signatureBytes[32] >> 7);
+    signatureBytes[32] &= 0x7f;
+    // Allow a recid to be used as the v
+    if (resultV < 27) {
+      if (resultV === 0 || resultV === 1) {
+        resultV += 27;
+      } else {
+        throw new Error(`signature ${signature} invalid v byte`);
+      }
+    }
+    
+    const signatureFinalBytes = Uint8Array.from([...signatureBytes, resultV]);
+    const signatureFinalHexString = HexString.fromBuffer(signatureFinalBytes);
+    
+    const sigParams = fromRpcSig(HexString.ensure(signatureFinalHexString).toString());
+    const publicKey = ecrecover(Buffer.from(messageHash), sigParams.v, sigParams.r, sigParams.s);
+    
+    return pubToAddress(publicKey).toString('hex') === this.address().toString();
   }
 
   /**

@@ -35,6 +35,7 @@ import {
   AnyNumber,
 } from "../bcs";
 import { Secp256k1PublicKey, MultiSecp256k1PublicKey } from "../moveup_types";
+import { VERSION } from "../version";
 
 export interface OptionalTransactionArgs {
   maxGasAmount?: Uint64;
@@ -84,6 +85,7 @@ export class MoveupClient {
     } else {
       conf.WITH_CREDENTIALS = true;
     }
+    conf.HEADERS = { ...conf.HEADERS, "x-moveup-client": `moveup-ts-sdk/${VERSION}` };
 
    if (config?.USEFETCHADAPTER === true) {
       conf.USEFETCHADAPTER = true;

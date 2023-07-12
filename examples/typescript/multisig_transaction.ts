@@ -7,8 +7,8 @@ import { MoveupClient, MoveupAccount, FaucetClient, BCS, TransactionBuilderMulti
 import { moveupCoinStore } from "./common";
 import assert from "assert";
 
-const NODE_URL = process.env.MOVEUP_NODE_URL || "https://fullnode.devnet.moveuplabs.com";
-const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveuplabs.com";
+const NODE_URL = process.env.MOVEUP_NODE_URL;
+const FAUCET_URL = process.env.MOVEUP_FAUCET_URL;
 
 /**
  * This code example demonstrates the process of moving test coins from one multisig
@@ -23,9 +23,8 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
   const account2 = new MoveupAccount();
   const account3 = new MoveupAccount();
 
-  // Create a 2 out of 3 MultiEd25519PublicKey. '2 out of 3' means for a multisig transaction
+  // Create a 2 out of 3 MultiSecp256k1PublicKey. '2 out of 3' means for a multisig transaction
   // to be executed, at least 2 accounts must have signed the transaction.
-  // See https://MoveupLabs.github.io/ts-sdk-doc/classes/TxnBuilderTypes.MultiEd25519PublicKey.html#constructor
   const multiSigPublicKey = new TxnBuilderTypes.MultiSecp256k1PublicKey(
     [
       new TxnBuilderTypes.Secp256k1PublicKey(new HexString(account1.signingKey.getPublic('hex')).toUint8Array()),
@@ -42,13 +41,13 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
 
   // Derive the multisig account address and fund the address with 5000 ETH.
   const mutisigAccountAddress = authKey.derivedAddress();
-  await faucetClient.fundAccount(mutisigAccountAddress, 100_000_000);
+  await faucetClient.fundAccount(mutisigAccountAddress, 1_000_000_000_000_000_000);
 
   let resources = await client.getAccountResources(mutisigAccountAddress);
   let accountResource = resources.find((r) => r.type === moveupCoinStore);
   let balance = parseInt((accountResource?.data as any).coin.value);
-  assert(balance === 100_000_000);
-  console.log(`multisig account coins: ${balance}. Should be 100000000!`);
+  assert(balance === 1_000_000_000_000_000_000);
+  console.log(`multisig account coins: ${balance}. Should be 1000000000000000000!`);
 
   const account4 = new MoveupAccount();
   // Creates a receiver account and fund the account with 0 ETH
@@ -62,7 +61,6 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
   const token = new TxnBuilderTypes.TypeTagStruct(TxnBuilderTypes.StructTag.fromString("0x1::eth::ETH"));
 
   // TS SDK support 3 types of transaction payloads: `EntryFunction`, `Script` and `Module`.
-  // See https://MoveupLabs.github.io/ts-sdk-doc/ for the details.
   const entryFunctionPayload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
     TxnBuilderTypes.EntryFunction.natural(
       // Fully qualified module name, `AccountAddress::ModuleName`
@@ -72,7 +70,7 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
       // The coin type to transfer
       [token],
       // Arguments for function `transfer`: receiver account address and amount to transfer
-      [BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account4.address())), BCS.bcsSerializeUint64(123)],
+      [BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account4.address())), BCS.bcsSerializeU128(123)],
     ),
   );
 
@@ -82,7 +80,6 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
   ]);
 
   // See class definiton here
-  // https://MoveupLabs.github.io/ts-sdk-doc/classes/TxnBuilderTypes.RawTransaction.html#constructor.
   const rawTxn = new TxnBuilderTypes.RawTransaction(
     // Transaction sender account address
     TxnBuilderTypes.AccountAddress.fromHex(mutisigAccountAddress),
@@ -91,7 +88,7 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
     // Max gas unit to spend
     BigInt(10000),
     // Gas price per unit
-    BigInt(100),
+    BigInt(1000000000),
     // Expiration timestamp. Transaction is discarded if it is not executed within 10 seconds from now.
     BigInt(Math.floor(Date.now() / 1000) + 10),
     new TxnBuilderTypes.ChainId(chainId),
@@ -103,11 +100,9 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
     const sigHexStr3 = account3.signBuffer(signingMessage);
 
     // Bitmap masks which public key has signed transaction.
-    // See https://MoveupLabs.github.io/ts-sdk-doc/classes/TxnBuilderTypes.MultiEd25519Signature.html#createBitmap
     const bitmap = TxnBuilderTypes.MultiSecp256k1Signature.createBitmap([0, 2]);
 
-    // See https://MoveupLabs.github.io/ts-sdk-doc/classes/TxnBuilderTypes.MultiEd25519Signature.html#constructor
-    const muliEd25519Sig = new TxnBuilderTypes.MultiSecp256k1Signature(
+    const muliSecp256k1Sig = new TxnBuilderTypes.MultiSecp256k1Signature(
       [
         new TxnBuilderTypes.Secp256k1Signature(sigHexStr1.toUint8Array()),
         new TxnBuilderTypes.Secp256k1Signature(sigHexStr3.toUint8Array()),
@@ -115,7 +110,7 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveu
       bitmap,
     );
 
-    return muliEd25519Sig;
+    return muliSecp256k1Sig;
   }, multiSigPublicKey);
 
   const bcsTxn = txnBuilder.sign(rawTxn);

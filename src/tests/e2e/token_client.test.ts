@@ -19,8 +19,8 @@ test(
     const bob = new MoveupAccount();
 
     // Fund both Alice's and Bob's Account
-    await faucetClient.fundAccount(alice.address(), 100000000);
-    await faucetClient.fundAccount(bob.address(), 100000000);
+    await faucetClient.fundAccount(alice.address(), 1000000000000000000);
+    await faucetClient.fundAccount(bob.address(), 1000000000000000000);
 
     const collectionName = "AliceCollection";
     const tokenName = "Alice Token";
@@ -127,14 +127,12 @@ test(
 
     // burn the token by owner
     var txn_hash = await tokenClient.burnByOwner(bob, alice.address(), collectionName, tokenName, 1, 1);
-    // console.log('txn_hash1 is :', txn_hash);
     await client.waitForTransactionWithResult(txn_hash);
     const newbalance = await tokenClient.getTokenForAccount(bob.address().hex(), newTokenId);
     expect(newbalance.amount).toBe("0");
 
     //bob opt_in directly transfer and alice transfer token to bob directly
     txn_hash = await tokenClient.optInTokenTransfer(bob, true);
-    // console.log('txn_hash2 is :', txn_hash);
     await client.waitForTransactionWithResult(txn_hash);
 
     // alice still have one token with property version 0.
@@ -147,7 +145,6 @@ test(
       bob.address(),
       1,
     );
-    // console.log('txn_hash3 is :', txn_hash);
     await client.waitForTransactionWithResult(txn_hash);
     const balance = await tokenClient.getTokenForAccount(bob.address().hex(), tokenId);
     expect(balance.amount).toBe("1");

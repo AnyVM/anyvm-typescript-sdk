@@ -345,12 +345,7 @@ export class TokenClient {
       [receiverAuthenticator], // Secondary signer authenticators
     );
 
-    // console.log("senderAuthenticator.public_key is : ", bytesToHex(bcsToBytes(senderAuthenticator.public_key)));
-    // console.log("senderAuthenticator.signature is : ", bytesToHex(bcsToBytes(senderAuthenticator.signature)));
-    // console.log("receiver.address() is : ", receiver.address());
-    // console.log("rawTxn is : ", bytesToHex(bcsToBytes(rawTxn)));
     const bcsTxn = bcsToBytes(new TxnBuilderTypes.SignedTransaction(rawTxn, multiAgentAuthenticator));
-    // console.log("multiAgentAuthenticator is : ", bytesToHex(bcsToBytes(multiAgentAuthenticator)));
 
     const transactionRes = await this.moveupClient.submitSignedBCSTransaction(bcsTxn);
 

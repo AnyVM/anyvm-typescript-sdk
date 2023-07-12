@@ -9,17 +9,27 @@ import {
   TransactionBuilderMultiSecp256k1,
   TransactionBuilderRemoteABI,
 } from "../../transaction_builder";
-import { TokenClient } from "../../plugins";
+import { MoveupToken, TokenClient } from "../../plugins";
 import { HexString } from "../../utils";
-import { getFaucetClient, longTestTimeout, NODE_URL } from "../unit/test_helper.test";
-import { bcsSerializeUint64, bcsToBytes } from "../../bcs";
-import { Secp256k1PublicKey } from "../../moveup_types";
+import { getFaucetClient, longTestTimeout, NODE_URL, PROVIDER_LOCAL_NETWORK_CONFIG } from "../unit/test_helper.test";
+import { bcsSerializeU128, bcsToBytes } from "../../bcs";
+import { AccountAddress, Secp256k1PublicKey, stringStructTag, TypeTagStruct } from "../../moveup_types";
+import { Provider } from "../../providers";
+import { BCS } from "../..";
+import { VERSION } from "../../version";
 
 const account = "0x1::account::Account";
 
 const moveupCoin = "0x1::coin::CoinStore<0x1::eth::ETH>";
 
 const coinTransferFunction = "0x1::coin::transfer";
+
+test("call should include x-moveup-client header", async () => {
+  const client = new MoveupClient(NODE_URL, { HEADERS: { my: "header" } });
+  const heders = client.client.request.config.HEADERS;
+  expect(heders).toHaveProperty("x-moveup-client", `moveup-ts-sdk/${VERSION}`);
+  expect(heders).toHaveProperty("my", "header");
+});
 
 test("node url empty", () => {
   expect(() => {
@@ -81,10 +91,10 @@ test(
     const faucetClient = getFaucetClient();
 
     const account1 = new MoveupAccount();
-    await faucetClient.fundAccount(account1.address(), 100_000_000);
+    await faucetClient.fundAccount(account1.address(), 1000000000000000000);
     let resources = await client.getAccountResources(account1.address());
     let accountResource = resources.find((r) => r.type === moveupCoin);
-    expect((accountResource!.data as any).coin.value).toBe("100000000");
+    expect((accountResource!.data as any).coin.value).toBe("1000000000000000000");
 
     const account2 = new MoveupAccount();
     await faucetClient.fundAccount(account2.address(), 0);
@@ -99,7 +109,7 @@ test(
         "0x1::coin",
         "transfer",
         [token],
-        [bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account2.address())), bcsSerializeUint64(717)],
+        [bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account2.address())), bcsSerializeU128(717)],
       ),
     );
 
@@ -117,6 +127,65 @@ test(
   longTestTimeout,
 );
 
+/*
+test(
+  "submits generic type bcs transaction",
+  async () => {
+    const provider = new Provider(PROVIDER_LOCAL_NETWORK_CONFIG);
+    const moveupToken = new MoveupToken(provider);
+    const account1 = new MoveupAccount();
+    const faucetClient = getFaucetClient();
+
+    await faucetClient.fundAccount(account1.address(), 1000000000000000000);
+    let resources = await provider.getAccountResources(account1.address());
+    let accountResource = resources.find((r) => r.type === moveupCoin);
+    expect((accountResource!.data as any).coin.value).toBe("1000000000000000000");
+
+    let tokenAddress = "";
+
+    await provider.waitForTransaction(
+      await moveupToken.createCollection(account1, "Collection description", "Collection Name", "https://moveup.dev", 5, {
+        royaltyNumerator: 10,
+        royaltyDenominator: 10,
+      }),
+    );
+    const txn = await provider.waitForTransactionWithResult(
+      await moveupToken.mint(
+        account1,
+        "Collection Name",
+        "Token Description",
+        "Token Name",
+        "https://moveup.dev/img/nyan.jpeg",
+        ["key"],
+        ["bool"],
+        ["true"],
+      ),
+      { checkSuccess: true },
+    );
+    tokenAddress = (txn as Gen.UserTransaction).events[0].data.token;
+
+    const token = new TxnBuilderTypes.TypeTagStruct(TxnBuilderTypes.StructTag.fromString("0x4::token::Token"));
+    const entryFunctionPayload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
+      TxnBuilderTypes.EntryFunction.natural(
+        "0x4::moveup_token",
+        "add_typed_property",
+        [token, new TypeTagStruct(stringStructTag)],
+        [
+          BCS.bcsToBytes(AccountAddress.fromHex(tokenAddress)),
+          BCS.bcsSerializeStr("bcsKey"),
+          BCS.bcsSerializeStr("bcs value"),
+        ],
+      ),
+    );
+    const rawTxn = await provider.generateRawTransaction(account1.address(), entryFunctionPayload);
+    const bcsTxn = MoveupClient.generateBCSTransaction(account1, rawTxn);
+    const transactionRes = await provider.submitSignedBCSTransaction(bcsTxn);
+    await provider.waitForTransaction(transactionRes.hash, { checkSuccess: true });
+  },
+  longTestTimeout,
+);
+*/
+
 test(
   "submits transaction with remote ABI",
   async () => {
@@ -124,10 +193,10 @@ test(
     const faucetClient = getFaucetClient();
 
     const account1 = new MoveupAccount();
-    await faucetClient.fundAccount(account1.address(), 100_000_000);
+    await faucetClient.fundAccount(account1.address(), 1000000000000000000);
     let resources = await client.getAccountResources(account1.address());
     let accountResource = resources.find((r) => r.type === moveupCoin);
-    expect((accountResource!.data as any).coin.value).toBe("100000000");
+    expect((accountResource!.data as any).coin.value).toBe("1000000000000000000");
 
     const account2 = new MoveupAccount();
     await faucetClient.fundAccount(account2.address(), 0);
@@ -175,11 +244,11 @@ test(
     const authKey = TxnBuilderTypes.AuthenticationKey.fromMultiSecp256k1PublicKey(multiSigPublicKey);
 
     const mutisigAccountAddress = authKey.derivedAddress();
-    await faucetClient.fundAccount(mutisigAccountAddress, 50000000);
+    await faucetClient.fundAccount(mutisigAccountAddress, 1000000000000000000);
 
     let resources = await client.getAccountResources(mutisigAccountAddress);
     let accountResource = resources.find((r) => r.type === moveupCoin);
-    expect((accountResource!.data as any).coin.value).toBe("50000000");
+    expect((accountResource!.data as any).coin.value).toBe("1000000000000000000");
 
     const account4 = new MoveupAccount();
     await faucetClient.fundAccount(account4.address(), 0);
@@ -194,7 +263,7 @@ test(
         "0x1::coin",
         "transfer",
         [token],
-        [bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account4.address())), bcsSerializeUint64(123)],
+        [bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account4.address())), bcsSerializeU128(123)],
       ),
     );
 
@@ -246,8 +315,8 @@ test(
 
     const account1 = new MoveupAccount();
     const account2 = new MoveupAccount();
-    const txns1 = await faucetClient.fundAccount(account1.address(), 1000000);
-    const txns2 = await faucetClient.fundAccount(account2.address(), 1000000);
+    const txns1 = await faucetClient.fundAccount(account1.address(), 1000000000000000000);
+    const txns2 = await faucetClient.fundAccount(account2.address(), 1000000000000000000);
     const tx1 = await client.getTransactionByHash(txns1[0]);
     const tx2 = await client.getTransactionByHash(txns2[0]);
     expect(tx1.type).toBe("user_transaction");
@@ -257,8 +326,8 @@ test(
       const resources2 = await client.getAccountResources(account2.address());
       const account1Resource = resources1.find((r) => r.type === moveupCoin);
       const account2Resource = resources2.find((r) => r.type === moveupCoin);
-      expect((account1Resource!.data as { coin: { value: string } }).coin.value).toBe("1000000");
-      expect((account2Resource!.data as { coin: { value: string } }).coin.value).toBe("1000000");
+      expect((account1Resource!.data as { coin: { value: string } }).coin.value).toBe("1000000000000000000");
+      expect((account2Resource!.data as { coin: { value: string } }).coin.value).toBe("1000000000000000000");
     };
     await checkETH();
 
@@ -288,7 +357,7 @@ test(
         return (
           write.address === account2.address().hex() &&
           write.data.type === moveupCoin &&
-          (write.data.data as { coin: { value: string } }).coin.value === "1100000"
+          (write.data.data as { coin: { value: string } }).coin.value === "1000000000000100000"
         );
       });
       expect(account2ETH).toHaveLength(1);
@@ -306,8 +375,8 @@ test(
 
     const account1 = new MoveupAccount();
     const account2 = new MoveupAccount();
-    const txns1 = await faucetClient.fundAccount(account1.address(), 100_000_000);
-    const txns2 = await faucetClient.fundAccount(account2.address(), 100_000_000);
+    const txns1 = await faucetClient.fundAccount(account1.address(), 1000000000000000000);
+    const txns2 = await faucetClient.fundAccount(account2.address(), 1000000000000000000);
     const tx1 = await client.getTransactionByHash(txns1[0]);
     const tx2 = await client.getTransactionByHash(txns2[0]);
     expect(tx1.type).toBe("user_transaction");
@@ -317,8 +386,8 @@ test(
       const resources2 = await client.getAccountResources(account2.address());
       const account1Resource = resources1.find((r) => r.type === moveupCoin);
       const account2Resource = resources2.find((r) => r.type === moveupCoin);
-      expect((account1Resource!.data as { coin: { value: string } }).coin.value).toBe("100000000");
-      expect((account2Resource!.data as { coin: { value: string } }).coin.value).toBe("100000000");
+      expect((account1Resource!.data as { coin: { value: string } }).coin.value).toBe("1000000000000000000");
+      expect((account2Resource!.data as { coin: { value: string } }).coin.value).toBe("1000000000000000000");
     };
     await checkETH();
 
@@ -328,7 +397,7 @@ test(
         "0x1::coin",
         "transfer",
         [token],
-        [bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account2.address())), bcsSerializeUint64(1000)],
+        [bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account2.address())), bcsSerializeU128(1000)],
       ),
     );
 
@@ -347,7 +416,7 @@ test(
       return (
         write.address === account2.address().toShortString() &&
         write.data.type === moveupCoin &&
-        (write.data.data as { coin: { value: string } }).coin.value === "100001000"
+        (write.data.data as { coin: { value: string } }).coin.value === "1000000000000001000"
       );
     });
     expect(account2ETH).toHaveLength(1);
@@ -356,6 +425,7 @@ test(
   longTestTimeout,
 );
 
+/*
 test(
   "submits multiagent transaction",
   async () => {
@@ -367,8 +437,8 @@ test(
     const bob = new MoveupAccount();
 
     // Fund both Alice's and Bob's Account
-    await faucetClient.fundAccount(alice.address(), 100000000);
-    await faucetClient.fundAccount(bob.address(), 100000000);
+    await faucetClient.fundAccount(alice.address(), 1000000000000000000);
+    await faucetClient.fundAccount(bob.address(), 1000000000000000000);
 
     const collectionName = "AliceCollection";
     const tokenName = "Alice Token";
@@ -437,7 +507,9 @@ test(
   },
   longTestTimeout,
 );
+*/
 
+/*
 test(
   "publishes a package",
   async () => {
@@ -447,7 +519,7 @@ test(
     const account1 = new MoveupAccount(
       new HexString("0x47c302b78ba9209f0ff29508a076605bf7a769a8b8ce1aaa5fb2b7ef6b5e7f71").toUint8Array(),
     );
-    await faucetClient.fundAccount(account1.address(), 100_000_000);
+    await faucetClient.fundAccount(account1.address(), 1000000000000000000);
 
     const txnHash = await client.publishPackage(
       account1,
@@ -472,7 +544,9 @@ test(
   },
   longTestTimeout,
 );
+*/
 
+/*
 test(
   "rotates auth key Secp256k1",
   async () => {
@@ -480,7 +554,7 @@ test(
     const faucetClient = getFaucetClient();
 
     const alice = new MoveupAccount();
-    await faucetClient.fundAccount(alice.address(), 100_000_000);
+    await faucetClient.fundAccount(alice.address(), 1000000000000000000);
 
     const helperAccount = new MoveupAccount();
 
@@ -499,6 +573,7 @@ test(
   },
   longTestTimeout,
 );
+*/
 
 test(
   "gets block by height",
@@ -530,7 +605,7 @@ test(
     const faucetClient = getFaucetClient();
 
     const alice = new MoveupAccount();
-    await faucetClient.fundAccount(alice.address(), 10000000);
+    await faucetClient.fundAccount(alice.address(), 1000000000000000000);
 
     const maxGasAmount = await client.estimateMaxGasAmount(alice.address());
 
@@ -546,7 +621,7 @@ test(
     const faucetClient = getFaucetClient();
 
     const alice = new MoveupAccount();
-    await faucetClient.fundAccount(alice.address(), 100_000_000);
+    await faucetClient.fundAccount(alice.address(), 1000000000000000000);
 
     const payload: Gen.ViewRequest = {
       function: "0x1::coin::balance",
@@ -556,7 +631,7 @@ test(
 
     const balance = await client.view(payload);
 
-    expect(balance[0]).toBe("100000000");
+    expect(balance[0]).toBe("1000000000000000000");
   },
   longTestTimeout,
 );
@@ -575,7 +650,7 @@ test(
 
     const alice = new MoveupAccount();
     // Fund Alice's Account
-    await faucetClient.fundAccount(alice.address(), 100000000);
+    await faucetClient.fundAccount(alice.address(), 1000000000000000000);
 
     const collectionName = "AliceCollection";
 

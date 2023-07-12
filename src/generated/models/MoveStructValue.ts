@@ -39,7 +39,7 @@
      * `{ "created": "0xa550c18", "role_id": "0" }`
      *
      * **Special serialization for Move stdlib types**:
-     * - [0x1::string::String](https://github.com/MoveupLabs/moveup/blob/main/language/move-stdlib/docs/ascii.md)
+     * - [0x1::string::String]
      * is serialized into `string`. For example, struct value `0x1::string::String{bytes: b"Hello World!"}`
      * is serialized as `"Hello World!"` in JSON.
      *

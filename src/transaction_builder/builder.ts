@@ -73,7 +73,6 @@ export class TransactionBuilder<F extends SigningFn> {
 
   /** Generates a Signing Message out of a raw transaction. */
   static getSigningMessage(rawTxn: AnyRawTransaction): SigningMessage {
-    // const hash = keccak_256.create();
     const hash = sha3Hash.create();
     if (rawTxn instanceof RawTransaction) {
       hash.update(RAW_TRANSACTION_SALT);
@@ -84,18 +83,14 @@ export class TransactionBuilder<F extends SigningFn> {
     }
 
     const prefix = hash.digest();
-    // console.log("prefix is : ", bytesToHex(prefix));
 
     const body = bcsToBytes(rawTxn);
-    // console.log("body is : ", bytesToHex(body));
 
     const mergedArray = new Uint8Array(prefix.length + body.length);
     mergedArray.set(prefix);
     mergedArray.set(body, prefix.length);
-    // console.log("mergedArray is : ", bytesToHex(mergedArray));
 
     return mergedArray;
-    // return body;
   }
 }
 
@@ -118,9 +113,6 @@ export class TransactionBuilderSecp256k1 extends TransactionBuilder<SigningFn> {
       new Secp256k1PublicKey(this.publicKey),
       signature as Secp256k1Signature,
     );
-
-    // console.log('publicKey is : ', bytesToHex(this.publicKey));
-    // console.log('authenticator is : ', bytesToHex(bcsToBytes(authenticator)));
 
     return new SignedTransaction(rawTxn, authenticator);
   }
@@ -405,10 +397,12 @@ export class TransactionBuilderRemoteABI {
     // Remove all `signer` and `&signer` from argument list because the Move VM injects those arguments. Clients do not
     // need to care about those args. `signer` and `&signer` are required be in the front of the argument list. But we
     // just loop through all arguments and filter out `signer` and `&signer`.
-    const originalArgs = funcAbi!.params.filter((param) => param !== "signer" && param !== "&signer");
+    const abiArgs = funcAbi!.params.filter((param) => param !== "signer" && param !== "&signer");
 
-    // Convert string arguments to TypeArgumentABI
-    const typeArgABIs = originalArgs.map((arg, i) => new ArgumentABI(`var${i}`, new TypeTagParser(arg).parseTypeTag()));
+    // Convert abi string arguments to TypeArgumentABI
+    const typeArgABIs = abiArgs.map(
+      (abiArg, i) => new ArgumentABI(`var${i}`, new TypeTagParser(abiArg, ty_tags).parseTypeTag()),
+    );
 
     const entryFunctionABI = new EntryFunctionABI(
       funcAbi!.name,

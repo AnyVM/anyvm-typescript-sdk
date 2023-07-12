@@ -6,7 +6,7 @@
 import { ec } from 'elliptic';
 import { ecsign } from 'ethereumjs-util';
 import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
-import { bcsSerializeUint64, bcsToBytes, Bytes } from "../../bcs";
+import { bcsSerializeBool, bcsSerializeU128, bcsToBytes, Bytes } from "../../bcs";
 import { HexString } from "../../utils";
 
 import { TransactionBuilderSecp256k1, TransactionBuilder } from "../../transaction_builder/index";
@@ -27,6 +27,7 @@ import {
   TransactionArgumentU32,
   TransactionArgumentU256,
   AccountAddress,
+  TypeTagBool,
 } from "../../moveup_types";
 import { keccak_256 } from '@noble/hashes/sha3';
 
@@ -83,13 +84,42 @@ test("throws when preparing signing message with invalid payload", () => {
   }).toThrow("Unknown transaction type.");
 });
 
+test("gets the signing message", () => {
+  const entryFunctionPayload = new TransactionPayloadEntryFunction(
+    EntryFunction.natural(
+      `${ADDRESS_1}::moveup_coin`,
+      "transfer",
+      [],
+      [bcsToBytes(AccountAddress.fromHex(ADDRESS_2)), bcsSerializeU128(1)],
+    ),
+  );
+
+  const rawTxn = new RawTransaction(
+    AccountAddress.fromHex(new HexString(ADDRESS_3)),
+    BigInt(0),
+    entryFunctionPayload,
+    BigInt(2000),
+    BigInt(0),
+    BigInt(TXN_EXPIRE),
+    new ChainId(4),
+  );
+
+  const message = TransactionBuilder.getSigningMessage(rawTxn);
+
+  expect(message instanceof Uint8Array).toBeTruthy();
+
+  expect(HexString.fromUint8Array(message).hex()).toBe(
+    "0x2b289b50132e50e80a20e9a83d7809c899198dad18004e6b5071dcf3144f8fd1000000000000000000000000000000000a550c1800000000000000000200000000000000000000000000000000000012220b6d6f766575705f636f696e087472616e7366657200021400000000000000000000000000000000000000dd1001000000000000000000000000000000d0070000000000000000000000000000ffffffffffffffff04",
+  );
+});
+
 test("serialize entry function payload with no type args", () => {
   const entryFunctionPayload = new TransactionPayloadEntryFunction(
     EntryFunction.natural(
       `${ADDRESS_1}::eth`,
       "transfer",
       [],
-      [bcsToBytes(AccountAddress.fromHex(ADDRESS_2)), bcsSerializeUint64(1)],
+      [bcsToBytes(AccountAddress.fromHex(ADDRESS_2)), bcsSerializeU128(1)],
     ),
   );
 
@@ -106,7 +136,7 @@ test("serialize entry function payload with no type args", () => {
   const signedTxn = sign(rawTxn);
 
   expect(hexSignedTxn(signedTxn)).toBe(
-    "000000000000000000000000000000000a550c18000000000000000002000000000000000000000000000000000000122203657468087472616e7366657200021400000000000000000000000000000000000000dd080100000000000000d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d740c1e63a82bf54cfb3aa0bc7966845b1b17dd1456b7909d71cfeff1aba755a9e6f6be013db5e143d2e104a372ec02676ff5be95a7a274168b136750b22182f159a",
+    "000000000000000000000000000000000a550c18000000000000000002000000000000000000000000000000000000122203657468087472616e7366657200021400000000000000000000000000000000000000dd1001000000000000000000000000000000d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d740350f4395051946fd9b9a0943fe486c40d677ed52027a5452a1b0d588cc8de844626f205d9cbbf17f8346ef286d92bb3c6fd26dc0d65f5182b8bf38a3c2261427",
   );
 });
 
@@ -118,7 +148,7 @@ test("serialize entry function payload with type args", () => {
       `${ADDRESS_1}::coin`,
       "transfer",
       [token],
-      [bcsToBytes(AccountAddress.fromHex(ADDRESS_2)), bcsSerializeUint64(1)],
+      [bcsToBytes(AccountAddress.fromHex(ADDRESS_2)), bcsSerializeU128(1)],
     ),
   );
 
@@ -135,7 +165,7 @@ test("serialize entry function payload with type args", () => {
   const signedTxn = sign(rawTxn);
 
   expect(hexSignedTxn(signedTxn)).toBe(
-    "000000000000000000000000000000000a550c18000000000000000002000000000000000000000000000000000000122204636f696e087472616e7366657201070000000000000000000000000000000000000001036574680345544800021400000000000000000000000000000000000000dd080100000000000000d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d740bdc367977540e7aa499073ec2a6af8f4c64eb85a3d09e9c542c6f166589e0a796bbd0236c89150fa4828685378187d7f6b87a4c514a2bafba4e6946a86bf2cd9",
+    "000000000000000000000000000000000a550c18000000000000000002000000000000000000000000000000000000122204636f696e087472616e7366657201070000000000000000000000000000000000000001036574680345544800021400000000000000000000000000000000000000dd1001000000000000000000000000000000d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d7408c833ef0a2393ad90dfd418f4bce0d82c0a6c4ce253b5d06f9c9706d9a3fd55a392b0f0600a6baf5429257c5a8d0426e185fb76df1754ea9ebc19136ef1236e7",
   );
 });
 
@@ -160,6 +190,35 @@ test("serialize entry function payload with type args but no function args", () 
 
   expect(hexSignedTxn(signedTxn)).toBe(
     "000000000000000000000000000000000a550c18000000000000000002000000000000000000000000000000000000122204636f696e0966616b655f66756e630107000000000000000000000000000000000000000103657468034554480000d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d74092c869ff79caa5cd89282492ff89f1fc1c34d10c8b8f6c13ca5b9ad5abaec98a445d2c02b2e84119342e47f526104d4916e12de8fc2ddbe8d6857e922df1c853",
+  );
+});
+
+test("serialize entry function payload with generic type args and function args", () => {
+  const token = new TypeTagStruct(StructTag.fromString(`0x14::token::Token`));
+
+  const entryFunctionPayload = new TransactionPayloadEntryFunction(
+    EntryFunction.natural(
+      `${ADDRESS_1}::moveup_token`,
+      "fake_typed_func",
+      [token, new TypeTagBool()],
+      [bcsToBytes(AccountAddress.fromHex(ADDRESS_2)), bcsSerializeBool(true)],
+    ),
+  );
+
+  const rawTxn = new RawTransaction(
+    AccountAddress.fromHex(ADDRESS_3),
+    BigInt(0),
+    entryFunctionPayload,
+    BigInt(2000),
+    BigInt(0),
+    BigInt(TXN_EXPIRE),
+    new ChainId(4),
+  );
+
+  const signedTxn = sign(rawTxn);
+
+  expect(hexSignedTxn(signedTxn)).toBe(
+    "000000000000000000000000000000000a550c1800000000000000000200000000000000000000000000000000000012220c6d6f766575705f746f6b656e0f66616b655f74797065645f66756e630207000000000000000000000000000000000000001405746f6b656e05546f6b656e0000021400000000000000000000000000000000000000dd0101d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d740203a6d4b83da3bad315f754d410166302cbab34b4e02d80cd1351a8e2f7d6db93a56304d63b7a1bd0d12a9dd0844f809b6193349b2d1d1d19857f61a03d2a0d4",
   );
 });
 
@@ -237,7 +296,7 @@ test("serialize script payload with type arg and function arg", () => {
 test("serialize script payload with one type arg and two function args", () => {
   const token = new TypeTagStruct(StructTag.fromString(`${ADDRESS_4}::eth::ETH`));
 
-  const argU8Vec = new TransactionArgumentU8Vector(bcsSerializeUint64(1));
+  const argU8Vec = new TransactionArgumentU8Vector(bcsSerializeU128(1));
   const argAddress = new TransactionArgumentAddress(AccountAddress.fromHex("0x01"));
 
   const script = hexToBytes("a11ceb0b030000000105000100000000050601000000000000000600000000000000001a0102");
@@ -257,7 +316,7 @@ test("serialize script payload with one type arg and two function args", () => {
   const signedTxn = sign(rawTxn);
 
   expect(hexSignedTxn(signedTxn)).toBe(
-    "000000000000000000000000000000000a550c1800000000000000000026a11ceb0b030000000105000100000000050601000000000000000600000000000000001a0102010700000000000000000000000000000000000000010365746803455448000204080100000000000000030000000000000000000000000000000000000001d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d740c692a7fe3cf3b8f763aafaf9472754c25b9fb9f02e01075fae4effab6a058f0874b8bbf713d6b9691b9c0b2f1dc8b775138bd8ce5d478e800defd3ac848c50a8",
+    "000000000000000000000000000000000a550c1800000000000000000026a11ceb0b030000000105000100000000050601000000000000000600000000000000001a01020107000000000000000000000000000000000000000103657468034554480002041001000000000000000000000000000000030000000000000000000000000000000000000001d0070000000000000000000000000000ffffffffffffffff040341049d623f9c5ef8302f4c1455e05cdefb6c5bc5d44dde7248528ab634707fe24c87a220acec3450e1811cff011785f265fa634498781f2519000b7b4b864d1f79d74035cd2cb38fab291e55b7fc87d9ab107fd2cb087ccb2b4175a9606420074a10df37f5a2e82603e560887cc37f3e76371a0dacff53342f05c5897e34edd48b72fb",
   );
 });
 

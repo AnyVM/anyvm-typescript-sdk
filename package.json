@@ -19,7 +19,6 @@
     "prepack": "pnpm build",
     "build": "pnpm build:clean && pnpm _build:node",
     "build:clean": "rm -rf dist",
-    "_build:browser": "tsup --platform browser --format iife --global-name moveupSDK --minify",
     "_build:node": "tsup --format cjs,esm --dts",
     "lint": "eslint \"**/*.ts\"",
     "test": "jest",
@@ -27,21 +26,19 @@
     "fmt": "pnpm _fmt --write",
     "fmt:check": "pnpm _fmt --check",
     "cov:clean": "rm -rf coverage",
-    "generate-client": "openapi -i ../../../api/doc/spec.yaml -o ./src/generated -c axios --name MoveupGeneratedClient --exportSchemas true",
     "checked-publish": "scripts/checked_publish.sh",
-    "generate-ts-docs": "scripts/generate_ts_docs.sh",
     "indexer-codegen": "graphql-codegen --config ./src/indexer/codegen.yml",
     "publish-ans-contract": "ts-node ./scripts/publish_ans_contract.ts"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/MoveupLabs/moveup-typescript-sdk.git"
+    "url": "https://github.com/AnyVM/anyvm-typescript-sdk.git"
   },
-  "homepage": "https://github.com/MoveupLabs/moveup-typescript-sdk",
+  "homepage": "https://github.com/AnyVM/anyvm-typescript-sdk",
   "bugs": {
-    "url": "https://github.com/MoveupLabs/moveup-typescript-sdk/issues"
+    "url": "https://github.com/AnyVM/anyvm-typescript-sdk/issues"
   },
-  "author": "moveuplabs.com",
+  "author": "anyvm.com",
   "keywords": [
     "Moveup",
     "Moveup Labs",
@@ -89,5 +86,5 @@
     "typedoc": "^0.23.20",
     "typescript": "4.8.2"
   },
-  "version": "1.1.6"
+  "version": "1.2.0"
 }

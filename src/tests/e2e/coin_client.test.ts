@@ -16,7 +16,7 @@ test(
 
     const alice = new MoveupAccount();
     const bob = new MoveupAccount();
-    await faucetClient.fundAccount(alice.address(), 100_000_000);
+    await faucetClient.fundAccount(alice.address(), 1_000_000_000_000_000_000);
     await faucetClient.fundAccount(bob.address(), 0);
 
     await client.waitForTransaction(await coinClient.transfer(alice, bob, 42), { checkSuccess: true });

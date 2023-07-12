@@ -17,8 +17,8 @@ import * as fs from "fs";
 import {hexToBytes} from "@noble/hashes/utils";
 import path from "path";
 
-const NODE_URL = process.env.MOVEUP_NODE_URL || "https://fullnode.devnet.moveuplabs.com";
-const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveuplabs.com";
+const NODE_URL = process.env.MOVEUP_NODE_URL;
+const FAUCET_URL = process.env.MOVEUP_FAUCET_URL;
 const ADMIN_PRIVATE_KEY = process.env.MOVEUP_ADMIN_PRIVATE_KEY;
 
 const {
@@ -33,9 +33,9 @@ const client = new MoveupClient(NODE_URL);
  */
 (async () => {
   const faucetClient = new FaucetClient(NODE_URL, FAUCET_URL);
-  const modulePath = "../../../../../moveup-move/move-examples/sun_coin"
+  const modulePath = "../../../../../moveup-move/move-examples/sun_coin";
   const account = new MoveupAccount(hexToBytes(ADMIN_PRIVATE_KEY));
-  await faucetClient.fundAccount(account.address(), 100_000_000);
+  await faucetClient.fundAccount(account.address(), 1_000_000_000_000_000_000);
   const packageMetadata =fs.readFileSync(path.join(modulePath, "build", "SunCoin", "package-metadata.bcs"));
   const moduleData = fs.readFileSync(path.join(modulePath, "build", "SunCoin", "bytecode_modules", "sun_coin.mv"));
   console.log("Publishing SunCoin package.");

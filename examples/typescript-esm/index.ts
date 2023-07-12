@@ -2,8 +2,8 @@
 import { MoveupClient, MoveupAccount, FaucetClient, BCS, TxnBuilderTypes, Provider, Network, TokenClient } from "@anyvm/moveup-sdk";
 import assert from "assert";
 
-const NODE_URL = process.env.MOVEUP_NODE_URL || "https://fullnode.devnet.moveuplabs.com";
-const FAUCET_URL = process.env.MOVEUP_FAUCET_URL || "https://faucet.devnet.moveuplabs.com";
+const NODE_URL = process.env.MOVEUP_NODE_URL;
+const FAUCET_URL = process.env.MOVEUP_FAUCET_URL;
 
 export const moveupCoinStore = "0x1::coin::CoinStore<0x1::eth::ETH>";
 
@@ -46,7 +46,6 @@ const {
   const token = new TypeTagStruct(StructTag.fromString("0x1::eth::ETH"));
 
   // TS SDK support 3 types of transaction payloads: `EntryFunction`, `Script` and `Module`.
-  // See https://MoveupLabs.github.io/ts-sdk-doc/ for the details.
   const entryFunctionPayload = new TransactionPayloadEntryFunction(
     EntryFunction.natural(
       // Fully qualified module name, `AccountAddress::ModuleName`
@@ -56,7 +55,7 @@ const {
       // The coin type to transfer
       [token],
       // Arguments for function `transfer`: receiver account address and amount to transfer
-      [BCS.bcsToBytes(AccountAddress.fromHex(account2.address())), BCS.bcsSerializeUint64(717)],
+      [BCS.bcsToBytes(AccountAddress.fromHex(account2.address())), BCS.bcsSerializeU128(717)],
     ),
   );
 
@@ -66,7 +65,6 @@ const {
   ]);
 
   // See class definiton here
-  // https://MoveupLabs.github.io/ts-sdk-doc/classes/TxnBuilderTypes.RawTransaction.html#constructor.
   const rawTxn = new RawTransaction(
     // Transaction sender account address
     AccountAddress.fromHex(account1.address()),

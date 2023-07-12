@@ -7,7 +7,6 @@ import { MoveupClient, MoveupAccount, FaucetClient, BCS, TxnBuilderTypes } from 
 import { sha3_256 as sha3Hash } from "@noble/hashes/sha3";
 import { moveupCoinStore, FAUCET_URL, NODE_URL } from "./common";
 import assert from "assert";
-import * as Gen from "../../src/generated";
 
 const { AccountAddress, EntryFunction, MultiSig, MultiSigTransactionPayload, TransactionPayloadMultisig } =
   TxnBuilderTypes;
@@ -23,33 +22,30 @@ const { AccountAddress, EntryFunction, MultiSig, MultiSigTransactionPayload, Tra
   const owner1 = new MoveupAccount();
   const owner2 = new MoveupAccount();
   const owner3 = new MoveupAccount();
-  await faucetClient.fundAccount(owner1.address(), 100_000_000);
-  await faucetClient.fundAccount(owner2.address(), 100_000_000);
-  await faucetClient.fundAccount(owner3.address(), 100_000_000);
+  const owner4 = new MoveupAccount();
+  await faucetClient.fundAccount(owner1.address(), 1_000_000_000_000_000_000);
+  await faucetClient.fundAccount(owner2.address(), 1_000_000_000_000_000_000);
+  await faucetClient.fundAccount(owner3.address(), 1_000_000_000_000_000_000);
 
   // Step 1: Setup a 2-of-3 multisig account
   // ===========================================================================================
-  // Get the next multisig account address. This will be the same as the account address of the multisig account we'll
-  // be creating.
-  const payload: Gen.ViewRequest = {
-    function: "0x1::multisig_account::get_next_multisig_account_address",
-    type_arguments: [],
-    arguments: [owner1.address().hex()],
-  };
-  const multisigAddress = (await client.view(payload))[0] as string;
-
-  // Create the multisig account with 3 owners and a signature threshold of 2.
   const createMultisig = await client.generateTransaction(owner1.address(), {
     function: "0x1::multisig_account::create_with_owners",
     type_arguments: [],
     arguments: [[owner2.address().hex(), owner3.address().hex()], 2, ["Shaka"], [BCS.bcsSerializeStr("Bruh")]],
   });
   await client.generateSignSubmitWaitForTransaction(owner1, createMultisig.payload);
+  // Find the multisig account address.
+  let ownedMultisigAccounts = await client.getAccountResource(
+    owner1.address(),
+    "0x1::multisig_account::OwnedMultisigAccounts",
+  );
+  const multisigAddress = (ownedMultisigAccounts?.data as any).multisig_accounts[0];
   assert((await getSignatureThreshold(client, multisigAddress)) == 2);
   assert((await getNumberOfOwners(client, multisigAddress)) == 3);
 
   // Fund the multisig account for transfers.
-  await faucetClient.fundAccount(multisigAddress, 100_000_000);
+  await faucetClient.fundAccount(multisigAddress, 1_000_000_000_000_000_000);
 
   // Step 2: Create a multisig transaction to send 1_000_000 coins to an account.
   // We'll be including the full payload to be stored on chain.
@@ -60,13 +56,12 @@ const { AccountAddress, EntryFunction, MultiSig, MultiSigTransactionPayload, Tra
       "0x1::moveup_account",
       "transfer",
       [],
-      [BCS.bcsToBytes(AccountAddress.fromHex(recipient.address())), BCS.bcsSerializeUint64(1_000_000)],
+      [BCS.bcsToBytes(AccountAddress.fromHex(recipient.address())), BCS.bcsSerializeU128(1_000_000)],
     ),
   );
   const multisigTxExecution = new TransactionPayloadMultisig(
     new MultiSig(AccountAddress.fromHex(multisigAddress), transferTxPayload),
   );
-  // We can simulate the transaction to see if it will succeed without having to create it on chain.
   const [simulationResp] = await client.simulateTransaction(
     owner2,
     await client.generateRawTransaction(owner2.address(), multisigTxExecution),
@@ -160,7 +155,7 @@ const { AccountAddress, EntryFunction, MultiSig, MultiSigTransactionPayload, Tra
   // Step 5: Create a multisig transactions to change the signature threshold to 3-of-3.
   // ===========================================================================================
   const changeSigThresholdPayload = new MultiSigTransactionPayload(
-    EntryFunction.natural("0x1::multisig_account", "update_signatures_required", [], [BCS.bcsSerializeUint64(3)]),
+    EntryFunction.natural("0x1::multisig_account", "update_signatures_required", [], [BCS.bcsSerializeU128(3)]),
   );
   const changeSigThresholdTx = await client.generateTransaction(owner2.address(), {
     function: "0x1::multisig_account::create_transaction",

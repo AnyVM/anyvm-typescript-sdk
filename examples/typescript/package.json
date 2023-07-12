@@ -5,19 +5,17 @@
   "main": "index.js",
   "scripts": {
     "bcs_transaction": "ts-node bcs_transaction.ts",
-    "multisig_account": "ts-node multisig_account.ts",
     "multisig_transaction": "ts-node multisig_transaction.ts",
     "simple_nft": "ts-node simple_nft.ts",
     "transfer_coin": "ts-node transfer_coin.ts",
     "test": "run-s bcs_transaction multisig_transaction simple_nft transfer_coin",
-    "your_coin": "ts-node your_coin.ts",
-    "publish_coin": "ts-node publish_coin.ts"
+    "your_coin": "ts-node your_coin.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@anyvm/moveup-sdk": "^1.1.0",
+    "@anyvm/moveup-sdk": "^1.1.8",
     "dotenv": "16.0.1"
   },
   "devDependencies": {

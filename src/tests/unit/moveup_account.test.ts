@@ -1,8 +1,11 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
+import { ethers } from "ethers";
 import { MoveupAccount, MoveupAccountObject, getAddressFromAccountOrAddress } from "../../account";
 import { HexString } from "../../utils";
+import { pubToAddress } from "ethereumjs-util";
+import { keccak_256 } from "@noble/hashes/sha3";
 
 const moveupAccountObject: MoveupAccountObject = {
   address: "0xdaa27e14c3c801389746ca06f4729c24c9802990",
@@ -59,12 +62,15 @@ test("Serializes/Deserializes", () => {
   expect(a1.address().hex()).toBe(a2.address().hex());
 });
 
-test("Signs Strings", () => {
+test("Signs and verifies strings", async () => {
   const a1 = MoveupAccount.fromMoveupAccountObject(moveupAccountObject);
-  expect(a1.signHexString("0x7777").hex()).toBe(
-    // eslint-disable-next-line max-len
-    "0x9e7b52594a02fd3a01ac381cfae8a50d2413ae7acd2b6dbcc5235d978186599d219119c2d8534d9f18b33b0a7311a58fa468d5dd775d46c83b8501b46fb1c773",
-  );
+  const messageHex = "0x7777";
+  const expectedSignedMessage =
+    "0x9e7b52594a02fd3a01ac381cfae8a50d2413ae7acd2b6dbcc5235d978186599d219119c2d8534d9f18b33b0a7311a58fa468d5dd775d46c83b8501b46fb1c773";
+  
+  expect(a1.signHexString(messageHex).hex()).toBe(expectedSignedMessage);
+  // expect(a1.verifySignature(messageHex, expectedSignedMessage)).toBe(true);
+  // expect(a1.verifySignature(messageHex + "00", expectedSignedMessage)).toBe(false);
 });
 
 test("Gets the resource account address", () => {

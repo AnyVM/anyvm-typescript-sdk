@@ -1,10 +1,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-
-// const fetchAdapter = typeof window !== 'undefined' ? 
-//   import('@vespaiach/axios-fetch-adapter') :
-//   null;
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import FormData from 'form-data';

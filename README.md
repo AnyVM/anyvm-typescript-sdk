@@ -37,7 +37,7 @@ pnpm install
 
 ### Working with local node
 
-To develop in a local environment, you need to use the SDK from the [main](https://github.com/MoveupLabs/moveup-typescript-sdk/tree/main/) branch.
+To develop in a local environment, you need to use the SDK from the [main](https://github.com/AnyVM/anyvm-typescript-sdk/tree/main/) branch.
 
 **NOTE**
 SDK from the main branch might not be compatible with the devnet.
