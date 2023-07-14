@@ -5,7 +5,7 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable max-classes-per-file */
-import { sha3_256 as sha3Hash } from "@noble/hashes/sha3";
+import { keccak_256 } from "@noble/hashes/sha3";
 import { HexString } from "../utils";
 import {
   Deserializer,
@@ -659,7 +659,7 @@ export abstract class Transaction {
   abstract hash(): Bytes;
 
   getHashSalt(): Bytes {
-    const hash = sha3Hash.create();
+    const hash = keccak_256.create();
     hash.update("MOVEUP::Transaction");
     return hash.digest();
   }
@@ -681,7 +681,7 @@ export class UserTransaction extends Transaction {
   }
 
   hash(): Bytes {
-    const hash = sha3Hash.create();
+    const hash = keccak_256.create();
     hash.update(this.getHashSalt());
     hash.update(bcsToBytes(this));
     return hash.digest();

@@ -1,7 +1,7 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-import { sha3_256 as sha3Hash } from "@noble/hashes/sha3";
+import { keccak_256 } from "@noble/hashes/sha3";
 import {
   Secp256k1PublicKey,
   Secp256k1Signature,
@@ -73,7 +73,7 @@ export class TransactionBuilder<F extends SigningFn> {
 
   /** Generates a Signing Message out of a raw transaction. */
   static getSigningMessage(rawTxn: AnyRawTransaction): SigningMessage {
-    const hash = sha3Hash.create();
+    const hash = keccak_256.create();
     if (rawTxn instanceof RawTransaction) {
       hash.update(RAW_TRANSACTION_SALT);
     } else if (rawTxn instanceof MultiAgentRawTransaction) {

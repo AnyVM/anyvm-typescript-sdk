@@ -52,7 +52,6 @@ describe("token objects", () => {
         { checkSuccess: true },
       );
       tokenAddress = (txn as UserTransaction).events[0].data.token;
-      console.log("tokenAddress is: ", tokenAddress);
     },
     longTestTimeout,
   );

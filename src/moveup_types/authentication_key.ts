@@ -1,7 +1,7 @@
 // Copyright © Aptos Foundation
 // SPDX-License-Identifier: Apache-2.0
 
-import { keccak_256, sha3_256 as sha3Hash } from "@noble/hashes/sha3";
+import { keccak_256 } from "@noble/hashes/sha3";
 import { HexString } from "../utils";
 import { Bytes } from "../bcs";
 import { MultiSecp256k1PublicKey } from "./multi_secp256k1";
@@ -43,7 +43,7 @@ export class AuthenticationKey {
     bytes.set(pubKeyBytes);
     bytes.set([AuthenticationKey.MULTI_SECP256K1_SCHEME], pubKeyBytes.length);
 
-    const hash = sha3Hash.create();
+    const hash = keccak_256.create();
     hash.update(bytes);
 
     const hashBytes = hash.digest();

@@ -5,7 +5,7 @@
 import { ec } from 'elliptic';
 import { ethers } from 'ethers';
 import { hexToBytes, bytesToHex } from "@noble/hashes/utils";
-import { keccak_256, sha3_256 as sha3Hash } from "@noble/hashes/sha3";
+import { keccak_256 } from "@noble/hashes/sha3";
 import { HexString, MaybeHexString, Memoize } from "../utils";
 import * as Gen from "../generated/index";
 import { AccountAddress, AuthenticationKey, Secp256k1PublicKey } from "../moveup_types";
