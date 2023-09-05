@@ -18,6 +18,8 @@ const {
   TransactionPayloadEntryFunction,
   RawTransaction,
   ChainId,
+  EntryFunctionArgumentAddress,
+  EntryFunctionArgumentU128,
 } = TxnBuilderTypes;
 
 /**
@@ -57,7 +59,7 @@ const {
       // The coin type to transfer
       [token],
       // Arguments for function `transfer`: receiver account address and amount to transfer
-      [BCS.bcsToBytes(AccountAddress.fromHex(account2.address())), BCS.bcsSerializeU128(717)],
+      [new EntryFunctionArgumentAddress(AccountAddress.fromHex(account2.address())), new EntryFunctionArgumentU128(BigInt(717))],
     ),
   );
 
@@ -73,12 +75,12 @@ const {
     BigInt(sequenceNumber),
     entryFunctionPayload,
     // Max gas unit to spend
-    BigInt(2000),
+    BigInt(20000),
     // Gas price per unit
     BigInt(1000000000),
     // Expiration timestamp. Transaction is discarded if it is not executed within 10 seconds from now.
     BigInt(Math.floor(Date.now() / 1000) + 10),
-    new ChainId(chainId),
+    new ChainId(BigInt(chainId)),
   );
 
   // Sign the raw transaction with account1's private key

@@ -23,11 +23,15 @@ import {
   TransactionPayloadEntryFunction,
   TransactionPayloadScript,
   ModuleId,
-  TypeTagParser
+  TypeTagParser,
+  TransactionPayloadMultisig,
+  TypeTagToString,
+  ArgsToString,
+  TransactionArgumentToString
 } from "../moveup_types";
-import { bcsToBytes, Bytes, Deserializer, Serializer, Uint64, Uint8 } from "../bcs";
+import { bcsToBytes, Bytes, Deserializer, Seq, Serializer, Uint64, Uint8 } from "../bcs";
 import { ArgumentABI, EntryFunctionABI, ScriptABI, TransactionScriptABI, TypeArgumentABI } from "../moveup_types/abi";
-import { argToTransactionArgument, serializeArg } from "./builder_utils";
+import { argToEntryFunctionArgument, argToTransactionArgument, serializeArg } from "./builder_utils";
 import * as Gen from "../generated/index";
 import {
   DEFAULT_TXN_EXP_SEC_FROM_NOW,
@@ -36,6 +40,8 @@ import {
   MaybeHexString,
   MemoizeExpiring,
 } from "../utils";
+import { TypedDataUtils, SignTypedDataVersion, TypedMessage } from '@metamask/eth-sig-util';
+import { EntryFunctionArgument, EntryFunctionArgumentToEip712String, EntryFunctionArgumentToString } from "../moveup_types/transaction";
 
 export { TypeTagParser } from "../moveup_types";
 
@@ -92,6 +98,477 @@ export class TransactionBuilder<F extends SigningFn> {
 
     return mergedArray;
   }
+
+  static getEip712TypedData(rawTxn: AnyRawTransaction): string {
+    let rawTxnPayload;
+    if (rawTxn instanceof RawTransaction) {
+      rawTxnPayload = (rawTxn as RawTransaction).payload;
+    } else if (rawTxn instanceof MultiAgentRawTransaction) {
+      rawTxnPayload = (rawTxn as MultiAgentRawTransaction).raw_txn.payload;
+    } else {
+      throw new Error("Unknown transaction type.");
+    }
+
+    let types = {
+      EIP712Domain: [],
+      AnyVmTransaction: [
+        {
+           "name": "sender",
+           "type": "address",
+        },
+        {
+           "name": "sequenceNumber",
+           "type": "uint256",
+        },
+        {
+           "name": "payload",
+           "type": "TransactionPayload",
+        },
+        {
+           "name": "maxGasAmount",
+           "type": "uint256",
+        },
+        {
+           "name": "gasUnitPrice",
+           "type": "uint256",
+        },
+        {
+           "name": "expirationTimestampSecs",
+           "type": "uint256",
+        },
+        {
+           "name": "chainId",
+           "type": "uint256",
+        },
+      ],
+    };
+    let rawTxnPayloadModuleString;
+    let rawTxnPayloadFunctionString;
+    let payload;
+    let rawTxnPayloadTyArgs;
+    let rawTxnPayloadArgs;
+    let rawTxnPayloadTyArgsString: string[];
+    let rawTxnPayloadArgsString;
+    let rawTxnPayloadCodeString;
+
+    if (rawTxnPayload instanceof TransactionPayloadEntryFunction) {
+      rawTxnPayloadModuleString = HexString.fromUint8Array((rawTxnPayload as TransactionPayloadEntryFunction).value.module_name.address.address).toShortString() + "::" +  (rawTxnPayload as TransactionPayloadEntryFunction).value.module_name.name.value;
+      rawTxnPayloadFunctionString = (rawTxnPayload as TransactionPayloadEntryFunction).value.function_name.value;
+      rawTxnPayloadTyArgs = (rawTxnPayload as TransactionPayloadEntryFunction).value.ty_args;
+      rawTxnPayloadTyArgsString = TypeTagToString(rawTxnPayloadTyArgs);
+
+      rawTxnPayloadArgs =(rawTxnPayload as TransactionPayloadEntryFunction).value.args;
+      rawTxnPayloadArgsString = EntryFunctionArgumentToString(rawTxnPayloadArgs);
+
+      payload = {
+        type: "EntryFunction",
+        value: {
+          module: rawTxnPayloadModuleString,
+          function: rawTxnPayloadFunctionString,
+          tyArgs: rawTxnPayloadTyArgsString,
+          args: rawTxnPayloadArgsString,
+        },
+      };
+
+      const rawTxnPayloadArgsEip712String = EntryFunctionArgumentToEip712String(rawTxnPayloadArgs);
+
+      let updatedTypes = {
+        ...types,
+        TransactionPayload: [
+              {
+                  "name": "type",
+                  "type": "string",
+              },
+              {
+                  "name": "value",
+                  "type": "EntryFunction",
+              }
+          ],
+          EntryFunction: [
+              {
+                  "name": "module",
+                  "type": "string",
+              },
+              {
+                  "name": "function",
+                  "type": "string",
+              },
+              {
+                  "name": "tyArgs",
+                  "type": "string[]",
+              },
+              {
+                  "name": "args",
+                  "type": "EntryFunctionArgs",
+              },
+          ],
+          EntryFunctionArgs: rawTxnPayloadArgsEip712String,
+      };
+
+      types = updatedTypes;
+    } 
+    else if (rawTxnPayload instanceof TransactionPayloadScript) {
+      let updatedTypes = {
+        ...types,
+        TransactionPayload: [
+              {
+                  "name": "type",
+                  "type": "string",
+              },
+              {
+                  "name": "value",
+                  "type": 'Script',
+              }
+          ],
+          Script: [
+              {
+                  "name": "code",
+                  "type": "string",
+                  },
+              {
+                  "name": "ty_args",
+                  "type": "string[]",
+                  },
+              {
+                  "name": "args",
+                  "type": "string[]",
+              },
+          ],
+      };
+
+      rawTxnPayloadCodeString = HexString.fromUint8Array((rawTxnPayload as TransactionPayloadScript).value.code).toString();
+      rawTxnPayloadTyArgs = (rawTxnPayload as TransactionPayloadScript).value.ty_args;
+      rawTxnPayloadTyArgsString = TypeTagToString(rawTxnPayloadTyArgs);
+
+      rawTxnPayloadArgs =(rawTxnPayload as TransactionPayloadScript).value.args;
+      rawTxnPayloadArgsString = TransactionArgumentToString(rawTxnPayloadArgs);
+
+      payload = {
+        type: "Script",
+        value: {
+          code: rawTxnPayloadCodeString,
+          ty_args: rawTxnPayloadTyArgsString,
+          args: rawTxnPayloadArgsString,
+        },
+      };
+
+      types = updatedTypes;
+    }  else if (rawTxnPayload instanceof TransactionPayloadMultisig) {
+      let updatedTypes = {
+        ...types,
+        TransactionPayload: [
+              {
+                  "name": "type",
+                  "type": "string",
+              },
+              {
+                  "name": "value",
+                  "type": 'Multisig',
+              }
+          ],
+          Multisig: [
+            {
+                "name": "multisig_address",
+                "type": "address",
+            },
+            {
+                "name": "transaction_payload",
+                "type": "MultisigTransactionPayload",
+            },
+        ],
+        MultisigTransactionPayload: [
+            {
+                "name": "type",
+                "type": "string",
+            },
+            {
+                "name": "value",
+                "type": "EntryFunction",
+            },
+        ],
+        EntryFunction: [
+          {
+              "name": "module",
+              "type": "string",
+          },
+          {
+              "name": "function",
+              "type": "string",
+          },
+          {
+              "name": "tyArgs",
+              "type": "string[]",
+          },
+          {
+              "name": "args",
+              "type": "EntryFunctionArgs",
+          },
+        ],
+      };
+
+      types = updatedTypes;
+    } else {
+      throw new Error("Invalid payload");
+    }
+
+    const message = {
+      sender: (rawTxn as RawTransaction).sender.toHexString(),
+      sequenceNumber: Number((rawTxn as RawTransaction).sequence_number),
+      payload: payload,
+      maxGasAmount: Number((rawTxn as RawTransaction).max_gas_amount),
+      gasUnitPrice: Number((rawTxn as RawTransaction).gas_unit_price),
+      expirationTimestampSecs: Number((rawTxn as RawTransaction).expiration_timestamp_secs),
+      chainId: Number((rawTxn as RawTransaction).chain_id.value),
+    };
+    
+    return JSON.stringify({
+      types: types,
+      primaryType: 'AnyVmTransaction',
+      domain: {},
+      message: message,
+    });
+  }
+
+  static getEip712SigningMessage(rawTxn: AnyRawTransaction): SigningMessage {
+    let rawTxnPayload;
+    if (rawTxn instanceof RawTransaction) {
+      rawTxnPayload = (rawTxn as RawTransaction).payload;
+    } else if (rawTxn instanceof MultiAgentRawTransaction) {
+      rawTxnPayload = (rawTxn as MultiAgentRawTransaction).raw_txn.payload;
+    } else {
+      throw new Error("Unknown transaction type.");
+    }
+
+    let types = {
+      EIP712Domain: [],
+      AnyVmTransaction: [
+        {
+           "name": "sender",
+           "type": "address",
+        },
+        {
+           "name": "sequenceNumber",
+           "type": "uint256",
+        },
+        {
+           "name": "payload",
+           "type": "TransactionPayload",
+        },
+        {
+           "name": "maxGasAmount",
+           "type": "uint256",
+        },
+        {
+           "name": "gasUnitPrice",
+           "type": "uint256",
+        },
+        {
+           "name": "expirationTimestampSecs",
+           "type": "uint256",
+        },
+        {
+           "name": "chainId",
+           "type": "uint256",
+        },
+      ],
+    };
+
+    let rawTxnPayloadModuleString;
+    let rawTxnPayloadFunctionString;
+    let payload;
+    let rawTxnPayloadTyArgs;
+    let rawTxnPayloadArgs;
+    let rawTxnPayloadTyArgsString: string[];
+    let rawTxnPayloadArgsString;
+    let rawTxnPayloadCodeString;
+
+    if (rawTxnPayload instanceof TransactionPayloadEntryFunction) {
+      
+
+      rawTxnPayloadModuleString = HexString.fromUint8Array((rawTxnPayload as TransactionPayloadEntryFunction).value.module_name.address.address).toShortString() + "::" +  (rawTxnPayload as TransactionPayloadEntryFunction).value.module_name.name.value;
+      rawTxnPayloadFunctionString = (rawTxnPayload as TransactionPayloadEntryFunction).value.function_name.value;
+      rawTxnPayloadTyArgs = (rawTxnPayload as TransactionPayloadEntryFunction).value.ty_args;
+      rawTxnPayloadTyArgsString = TypeTagToString(rawTxnPayloadTyArgs);
+
+      rawTxnPayloadArgs =(rawTxnPayload as TransactionPayloadEntryFunction).value.args;
+      rawTxnPayloadArgsString = EntryFunctionArgumentToString(rawTxnPayloadArgs);
+
+      payload = {
+        type: "EntryFunction",
+        value: {
+          module: rawTxnPayloadModuleString,
+          function: rawTxnPayloadFunctionString,
+          tyArgs: rawTxnPayloadTyArgsString,
+          args: rawTxnPayloadArgsString,
+        },
+      };
+
+      const rawTxnPayloadArgsEip712String = EntryFunctionArgumentToEip712String(rawTxnPayloadArgs);
+
+      let updatedTypes = {
+        ...types,
+        TransactionPayload: [
+              {
+                  "name": "type",
+                  "type": "string",
+              },
+              {
+                  "name": "value",
+                  "type": "EntryFunction",
+              }
+          ],
+          EntryFunction: [
+              {
+                  "name": "module",
+                  "type": "string",
+              },
+              {
+                  "name": "function",
+                  "type": "string",
+              },
+              {
+                  "name": "tyArgs",
+                  "type": "string[]",
+              },
+              {
+                  "name": "args",
+                  "type": "EntryFunctionArgs",
+              },
+          ],
+          EntryFunctionArgs: rawTxnPayloadArgsEip712String,
+      };
+
+      types = updatedTypes;
+    } 
+    else if (rawTxnPayload instanceof TransactionPayloadScript) {
+      let updatedTypes = {
+        ...types,
+        TransactionPayload: [
+              {
+                  "name": "type",
+                  "type": "string",
+              },
+              {
+                  "name": "value",
+                  "type": 'Script',
+              }
+          ],
+          Script: [
+              {
+                  "name": "code",
+                  "type": "string",
+              },
+              {
+                  "name": "tyArgs",
+                  "type": "string[]",
+              },
+              {
+                  "name": "args",
+                  "type": "string[]",
+              },
+          ],
+      };
+
+      rawTxnPayloadCodeString = HexString.fromUint8Array((rawTxnPayload as TransactionPayloadScript).value.code).toString();
+      rawTxnPayloadTyArgs = (rawTxnPayload as TransactionPayloadScript).value.ty_args;
+      rawTxnPayloadTyArgsString = TypeTagToString(rawTxnPayloadTyArgs, false);
+
+      rawTxnPayloadArgs =(rawTxnPayload as TransactionPayloadScript).value.args;
+      rawTxnPayloadArgsString = TransactionArgumentToString(rawTxnPayloadArgs);
+
+      payload = {
+        type: "Script",
+        value: {
+          code: rawTxnPayloadCodeString,
+          tyArgs: rawTxnPayloadTyArgsString,
+          args: rawTxnPayloadArgsString,
+        },
+      };
+
+      types = updatedTypes;
+    }  else if (rawTxnPayload instanceof TransactionPayloadMultisig) {
+      let updatedTypes = {
+        ...types,
+        TransactionPayload: [
+              {
+                  "name": "type",
+                  "type": "string",
+              },
+              {
+                  "name": "value",
+                  "type": 'Multisig',
+              }
+          ],
+          Multisig: [
+            {
+                "name": "multisig_address",
+                "type": "address",
+            },
+            {
+                "name": "transaction_payload",
+                "type": "MultisigTransactionPayload",
+            },
+        ],
+        MultisigTransactionPayload: [
+            {
+                "name": "type",
+                "type": "string",
+            },
+            {
+                "name": "value",
+                "type": "EntryFunction",
+            },
+        ],
+        EntryFunction: [
+          {
+              "name": "module",
+              "type": "string",
+          },
+          {
+              "name": "function",
+              "type": "string",
+          },
+          {
+              "name": "tyArgs",
+              "type": "string[]",
+          },
+          {
+              "name": "args",
+              "type": "EntryFunctionArgs",
+          },
+        ],
+      };
+
+      types = updatedTypes;
+    } else {
+      throw new Error("Invalid payload");
+    }
+
+    const message = {
+      sender: (rawTxn as RawTransaction).sender.toHexString(),
+      sequenceNumber: Number((rawTxn as RawTransaction).sequence_number),
+      payload: payload,
+      maxGasAmount: Number((rawTxn as RawTransaction).max_gas_amount),
+      gasUnitPrice: Number((rawTxn as RawTransaction).gas_unit_price),
+      expirationTimestampSecs: Number((rawTxn as RawTransaction).expiration_timestamp_secs),
+      chainId: Number((rawTxn as RawTransaction).chain_id.value),
+    };
+
+    // console.log("message is: ", JSON.stringify(message));
+    // console.log("types is: ", JSON.stringify(types));
+
+    const typedDataHash = TypedDataUtils.eip712Hash(
+      {
+        types: types,
+        primaryType: 'AnyVmTransaction',
+        domain: {},
+        message: message,
+      },
+      // TransactionBuilder.getEip712TypedData(rawTxn);
+      SignTypedDataVersion.V4,
+    );
+    return typedDataHash;
+  }
 }
 
 /**
@@ -106,7 +583,7 @@ export class TransactionBuilderSecp256k1 extends TransactionBuilder<SigningFn> {
   }
 
   rawToSigned(rawTxn: RawTransaction): SignedTransaction {
-    const signingMessage = TransactionBuilder.getSigningMessage(rawTxn);
+    const signingMessage = TransactionBuilder.getEip712SigningMessage(rawTxn);
     const signature = this.signingFunction(signingMessage);
 
     const authenticator = new TransactionAuthenticatorSecp256k1(
@@ -136,7 +613,8 @@ export class TransactionBuilderMultiSecp256k1 extends TransactionBuilder<Signing
 
   rawToSigned(rawTxn: RawTransaction): SignedTransaction {
     const signingMessage = TransactionBuilder.getSigningMessage(rawTxn);
-    const signature = this.signingFunction(signingMessage);
+    const bufferHash = keccak_256(signingMessage);
+    const signature = this.signingFunction(bufferHash);
 
     const authenticator = new TransactionAuthenticatorMultiSecp256k1(this.publicKey, signature as MultiSecp256k1Signature);
 
@@ -224,6 +702,14 @@ export class TransactionBuilderABI {
     return args.map((arg, i) => argToTransactionArgument(arg, abiArgs[i].type_tag));
   }
 
+  private static toEntryFunctionArguments(abiArgs: any[], args: any[]): EntryFunctionArgument[] {
+    if (abiArgs.length !== args.length) {
+      throw new Error("Wrong number of args provided.");
+    }
+
+    return args.map((arg, i) => argToEntryFunctionArgument(arg, abiArgs[i].type_tag));
+  }
+
   setSequenceNumber(seqNumber: Uint64 | string) {
     this.builderConfig.sequenceNumber = BigInt(seqNumber);
   }
@@ -250,9 +736,10 @@ export class TransactionBuilderABI {
 
     if (scriptABI instanceof EntryFunctionABI) {
       const funcABI = scriptABI as EntryFunctionABI;
-      const bcsArgs = TransactionBuilderABI.toBCSArgs(funcABI.args, args);
+      // const bcsArgs = TransactionBuilderABI.toBCSArgs(funcABI.args, args);
+      const entryFunctionArgs = TransactionBuilderABI.toEntryFunctionArguments(funcABI.args, args);
       payload = new TransactionPayloadEntryFunction(
-        new EntryFunction(funcABI.module_name, new Identifier(funcABI.name), typeTags, bcsArgs),
+        new EntryFunction(funcABI.module_name, new Identifier(funcABI.name), typeTags, entryFunctionArgs),
       );
     } else if (scriptABI instanceof TransactionScriptABI) {
       const funcABI = scriptABI as TransactionScriptABI;
@@ -308,7 +795,7 @@ export class TransactionBuilderABI {
         BigInt(maxGasAmount!),
         BigInt(gasUnitPrice!),
         expTimestampSec,
-        new ChainId(Number(chainId)),
+        new ChainId(BigInt(Number(chainId))),
       );
     }
 

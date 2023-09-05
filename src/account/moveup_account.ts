@@ -11,6 +11,7 @@ import * as Gen from "../generated/index";
 import { AccountAddress, AuthenticationKey, Secp256k1PublicKey } from "../moveup_types";
 import { bcsToBytes } from "../bcs";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
+import { ecsign, fromRpcSig, ecrecover, pubToAddress } from 'ethereumjs-util';
 
 export interface MoveupAccountObject {
   address?: Gen.HexEncodedBytes;
@@ -144,8 +145,9 @@ export class MoveupAccount {
    * @returns A signature HexString
    */
   signBuffer(buffer: Uint8Array): HexString {
-    const bufferHash = keccak_256(buffer);
-    const signatureHex = secp256k1.sign(bytesToHex(bufferHash), this.signingKey.getPrivate('hex')).toCompactHex();
+    // const bufferHash = keccak_256(buffer);
+    // const signatureHex = secp256k1.sign(bytesToHex(bufferHash), this.signingKey.getPrivate('hex')).toCompactHex();
+    const signatureHex = secp256k1.sign(bytesToHex(buffer), this.signingKey.getPrivate('hex')).toCompactHex();
     
     return new HexString(signatureHex);
   }
@@ -157,7 +159,8 @@ export class MoveupAccount {
    */
   signHexString(hexString: MaybeHexString): HexString {
     const toSign = HexString.ensure(hexString).toUint8Array();
-    return this.signBuffer(toSign);
+    const bufferHash = keccak_256(toSign);
+    return this.signBuffer(bufferHash);
   }
 
   /**

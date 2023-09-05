@@ -5,8 +5,9 @@
 /* eslint-disable class-methods-use-this */
 /* eslint-disable max-classes-per-file */
 import { AccountAddress } from "./account_address";
-import { Deserializer, Seq, Serializer, deserializeVector, serializeVector } from "../bcs";
+import { Bytes, Deserializer, Seq, Serializer, deserializeVector, serializeVector } from "../bcs";
 import { Identifier } from "./identifier";
+import { HexString } from "../utils/hex_string";
 
 export abstract class TypeTag {
   abstract serialize(serializer: Serializer): void;
@@ -455,4 +456,86 @@ export class TypeTagParserError extends Error {
     super(message);
     this.name = "TypeTagParserError";
   }
+}
+
+export function TypeTagToString(ty_args: Seq<TypeTag>, addressShortFlag: boolean = true): string[]{
+  let stringArray: string[] = [];
+  const len = ty_args.length;
+  if (len == 0) {
+    return stringArray;
+  }
+
+  for (let i=0; i < len; i++) {
+    if (ty_args[i] instanceof TypeTagStruct) {
+      let addressString;
+      if (addressShortFlag) {
+        addressString = HexString.fromUint8Array((ty_args[i] as TypeTagStruct).value.address.address).toShortString();
+      }
+      else {
+        addressString = HexString.fromUint8Array((ty_args[i] as TypeTagStruct).value.address.address).noPrefix();
+      }
+      stringArray[i] = addressString + "::"
+                     + (ty_args[i] as TypeTagStruct).value.module_name.value + "::"
+                     + (ty_args[i] as TypeTagStruct).value.name.value;
+      if ((ty_args[i] as TypeTagStruct).value.type_args.length > 0) {
+        stringArray[i] += "<";
+        const structTypeArgsStrings = TypeTagToString((ty_args[i] as TypeTagStruct).value.type_args);
+        for (const structTypeArgsString of structTypeArgsStrings) {
+          stringArray[i] += structTypeArgsString;
+          stringArray[i] += ",";
+        }
+        stringArray[i] += ">";
+      }
+    }
+    if (ty_args[i] instanceof TypeTagVector) {
+      stringArray[i] = "vector<";
+      const vectorTypeTag: Seq<TypeTag> = [(ty_args[i] as TypeTagVector).value];
+      const vectorTypeArgsStrings = TypeTagToString(vectorTypeTag);
+      for (const vectorTypeArgsString of vectorTypeArgsStrings) {
+        stringArray[i] += vectorTypeArgsString;
+      }
+      stringArray[i] += ">";
+    }
+    if (ty_args[i] instanceof TypeTagU8) {
+      stringArray[i] = "u8";
+    }
+    if (ty_args[i] instanceof TypeTagU16) {
+      stringArray[i] = "u16";
+    }
+    if (ty_args[i] instanceof TypeTagU32) {
+      stringArray[i] = "u32";
+    }
+    if (ty_args[i] instanceof TypeTagU64) {
+      stringArray[i] = "u64";
+    }
+    if (ty_args[i] instanceof TypeTagU128) {
+      stringArray[i] = "u128";
+    }
+    if (ty_args[i] instanceof TypeTagU256) {
+      stringArray[i] = "u256";
+    }
+    if (ty_args[i] instanceof TypeTagBool) {
+      stringArray[i] = "bool";
+    }
+    if (ty_args[i] instanceof TypeTagAddress) {
+      stringArray[i] = "address";
+    }
+    if (ty_args[i] instanceof TypeTagSigner) {
+      stringArray[i] = "signer";
+    }
+  }
+  return stringArray;
+}
+
+export function ArgsToString(args: Seq<Bytes>): string[]{
+  let stringArray: string[] = [];
+  const len = args.length;
+  if (len == 0) {
+    return stringArray;
+  }
+
+  for (let i=0; i < len; i++) {
+    stringArray[i] = HexString.fromUint8Array(args[i]).toString();
+  }
+  return stringArray;
 }

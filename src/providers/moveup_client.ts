@@ -22,6 +22,7 @@ import {
   TransactionBuilderRemoteABI,
   RemoteABIBuilderConfig,
   TransactionBuilderMultiSecp256k1,
+  TransactionBuilder,
 } from "../transaction_builder";
 import {
   bcsSerializeBytes,
@@ -34,8 +35,9 @@ import {
   Uint64,
   AnyNumber,
 } from "../bcs";
-import { Secp256k1PublicKey, MultiSecp256k1PublicKey } from "../moveup_types";
+import { Secp256k1PublicKey, MultiSecp256k1PublicKey, TransactionAuthenticatorSecp256k1, Secp256k1Signature } from "../moveup_types";
 import { VERSION } from "../version";
+import { EntryFunctionArgumentBcsBytes, EntryFunctionArgumentU8, SignedTransaction } from "../moveup_types/transaction";
 
 export interface OptionalTransactionArgs {
   maxGasAmount?: Uint64;
@@ -234,6 +236,21 @@ export class MoveupClient {
     }, accountFrom.pubKey().toUint8Array());
 
     return txnBuilder.sign(rawTxn);
+  }
+
+  static generateEip712TypedData(rawTxn: TxnBuilderTypes.RawTransaction): string {
+    return TransactionBuilder.getEip712TypedData(rawTxn);
+  }
+
+  static generateBCSTransactionFromOutSign(accountFrom: MoveupAccount, rawTxn: TxnBuilderTypes.RawTransaction, outSign: string): Uint8Array {
+    const signature = new TxnBuilderTypes.Secp256k1Signature(new HexString(outSign).toUint8Array());
+
+    const authenticator = new TransactionAuthenticatorSecp256k1(
+      new Secp256k1PublicKey(accountFrom.pubKey().toUint8Array()),
+      signature as Secp256k1Signature,
+    );
+
+    return bcsToBytes(new SignedTransaction(rawTxn, authenticator));
   }
 
   /**
@@ -723,7 +740,7 @@ export class MoveupClient {
       maxGasAmount,
       gasUnitPrice,
       expireTimestamp,
-      new TxnBuilderTypes.ChainId(chainId),
+      new TxnBuilderTypes.ChainId(BigInt(chainId)),
     );
   }
 
@@ -771,7 +788,8 @@ export class MoveupClient {
         "0x1::code",
         "publish_package_txn",
         [],
-        [bcsSerializeBytes(packageMetadata), codeSerializer.getBytes()],
+        // [bcsSerializeBytes(packageMetadata), codeSerializer.getBytes()],
+        [new EntryFunctionArgumentBcsBytes(packageMetadata), new EntryFunctionArgumentBcsBytes(codeSerializer.getBytes())],
       ),
     );
 
@@ -861,13 +879,21 @@ export class MoveupClient {
         "0x1::account",
         "rotate_authentication_key",
         [],
+        // [
+        //   bcsSerializeU8(0), // Secp256k1 scheme
+        //   bcsSerializeBytes(forAccount.pubKey().toUint8Array()),
+        //   bcsSerializeU8(0), // Secp256k1 scheme
+        //   bcsSerializeBytes(helperAccount.pubKey().toUint8Array()),
+        //   bcsSerializeBytes(proofSignedByCurrentPrivateKey.toUint8Array()),
+        //   bcsSerializeBytes(proofSignedByNewPrivateKey.toUint8Array()),
+        // ],
         [
-          bcsSerializeU8(0), // Secp256k1 scheme
-          bcsSerializeBytes(forAccount.pubKey().toUint8Array()),
-          bcsSerializeU8(0), // Secp256k1 scheme
-          bcsSerializeBytes(helperAccount.pubKey().toUint8Array()),
-          bcsSerializeBytes(proofSignedByCurrentPrivateKey.toUint8Array()),
-          bcsSerializeBytes(proofSignedByNewPrivateKey.toUint8Array()),
+          new EntryFunctionArgumentU8(0), // Secp256k1 scheme
+          new EntryFunctionArgumentBcsBytes(forAccount.pubKey().toUint8Array()),
+          new EntryFunctionArgumentU8(0), // Secp256k1 scheme
+          new EntryFunctionArgumentBcsBytes(helperAccount.pubKey().toUint8Array()),
+          new EntryFunctionArgumentBcsBytes(proofSignedByCurrentPrivateKey.toUint8Array()),
+          new EntryFunctionArgumentBcsBytes(proofSignedByNewPrivateKey.toUint8Array()),
         ],
       ),
     );

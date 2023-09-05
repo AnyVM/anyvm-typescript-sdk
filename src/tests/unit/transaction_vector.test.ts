@@ -192,7 +192,7 @@ function verify(
     BigInt(raw_txn.max_gas_amount),
     BigInt(raw_txn.gas_unit_price),
     BigInt(raw_txn.expiration_timestamp_secs),
-    new ChainId(raw_txn.chain_id),
+    new ChainId(BigInt(raw_txn.chain_id)),
   );
 
   const signedTxn = sign(rawTxn, private_key);

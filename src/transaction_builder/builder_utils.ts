@@ -26,6 +26,22 @@ import {
   TransactionArgumentU8,
   TransactionArgumentU8Vector,
 } from "../moveup_types";
+import { 
+  EntryFunctionArgument,
+  EntryFunctionArgumentBool,
+  EntryFunctionArgumentU16,
+  EntryFunctionArgumentU32,
+  EntryFunctionArgumentU64,
+  EntryFunctionArgumentU128,
+  EntryFunctionArgumentU256,
+  EntryFunctionArgumentAddress,
+  EntryFunctionArgumentU8,
+  EntryFunctionArgumentBcsBytes,
+  EntryFunctionArgumentVector,
+  EntryFunctionArgumentStruct,
+  EntryFunctionArgumentString,
+  StructType,
+ } from "../moveup_types/transaction";
 import { Serializer } from "../bcs";
 
 function assertType(val: any, types: string[] | string, message?: string) {
@@ -193,4 +209,70 @@ export function argToTransactionArgument(argVal: any, argType: TypeTag): Transac
   }
 
   throw new Error("Unknown type for TransactionArgument.");
+}
+
+export function argToEntryFunctionArgument(argVal: any, argType: TypeTag): EntryFunctionArgument {
+  if (argType instanceof TypeTagBool) {
+    return new EntryFunctionArgumentBool(ensureBoolean(argVal));
+  }
+  if (argType instanceof TypeTagU8) {
+    return new EntryFunctionArgumentU8(ensureNumber(argVal));
+  }
+  if (argType instanceof TypeTagU16) {
+    return new EntryFunctionArgumentU16(ensureNumber(argVal));
+  }
+  if (argType instanceof TypeTagU32) {
+    return new EntryFunctionArgumentU32(ensureNumber(argVal));
+  }
+  if (argType instanceof TypeTagU64) {
+    return new EntryFunctionArgumentU64(ensureBigInt(argVal));
+  }
+  if (argType instanceof TypeTagU128) {
+    return new EntryFunctionArgumentU128(ensureBigInt(argVal));
+  }
+  if (argType instanceof TypeTagU256) {
+    return new EntryFunctionArgumentU256(ensureBigInt(argVal));
+  }
+  if (argType instanceof TypeTagAddress) {
+    let addr: AccountAddress;
+    if (typeof argVal === "string" || argVal instanceof HexString) {
+      addr = AccountAddress.fromHex(argVal);
+    } else if (argVal instanceof AccountAddress) {
+      addr = argVal;
+    } else {
+      throw new Error("Invalid account address.");
+    }
+    return new EntryFunctionArgumentAddress(addr);
+  }
+  // if (argType instanceof TypeTagVector && argType.value instanceof TypeTagU8) {
+  //   if (!(argVal instanceof Uint8Array)) {
+  //     throw new Error(`${argVal} should be an instance of Uint8Array`);
+  //   }
+  //   return new EntryFunctionArgumentBcsBytes(argVal);
+  // }
+  // if (argType instanceof TypeTagVector && !(argType.value instanceof TypeTagU8)) {
+  if (argType instanceof TypeTagVector) {
+    if (argType.value instanceof TypeTagU8) {
+      if (typeof argVal === "string") {
+        const numbers: number[] = [];
+        for (let i = 0; i < argVal.length; i++) {
+          const charCode = argVal.charCodeAt(i);
+          numbers.push(charCode);
+        }
+        argVal = numbers;
+      }
+    }
+    const elements = argVal.map((argValItem: any) => argToEntryFunctionArgument(argValItem, argType.value));
+    return new EntryFunctionArgumentVector(elements);
+  }
+  if (argType instanceof TypeTagStruct && argType.isStringTypeTag()) {
+    return new EntryFunctionArgumentString(argVal);
+  }
+  if (argType instanceof TypeTagStruct && !(argType.isStringTypeTag())) {
+    let structType: StructType = {type_: null, fields: []};
+    structType.type_ = (argType as TypeTagStruct).value;
+    return new EntryFunctionArgumentStruct(structType);
+  }
+
+  throw new Error("Unknown type for EntryFunctionArgument.");
 }

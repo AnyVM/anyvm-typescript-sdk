@@ -15,7 +15,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@anyvm/moveup-sdk": "^1.1.8",
+    "@anyvm/moveup-sdk": "1.2.0",
     "dotenv": "16.0.1"
   },
   "devDependencies": {

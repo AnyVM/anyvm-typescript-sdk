@@ -45,7 +45,8 @@ export class TokenClient {
     name: string,
     description: string,
     uri: string,
-    maxAmount: AnyNumber = MAX_U64_BIG_INT,
+    // maxAmount: AnyNumber = MAX_U64_BIG_INT,
+    maxAmount: AnyNumber = 10000000000000,
     extraArgs?: OptionalTransactionArgs,
   ): Promise<string> {
     // <:!:createCollection

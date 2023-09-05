@@ -7,6 +7,11 @@ import { MoveupClient, MoveupAccount, FaucetClient, BCS, TransactionBuilderMulti
 import { moveupCoinStore } from "./common";
 import assert from "assert";
 
+const {
+  EntryFunctionArgumentAddress,
+  EntryFunctionArgumentU128,
+} = TxnBuilderTypes;
+
 const NODE_URL = process.env.MOVEUP_NODE_URL;
 const FAUCET_URL = process.env.MOVEUP_FAUCET_URL;
 
@@ -70,7 +75,7 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL;
       // The coin type to transfer
       [token],
       // Arguments for function `transfer`: receiver account address and amount to transfer
-      [BCS.bcsToBytes(TxnBuilderTypes.AccountAddress.fromHex(account4.address())), BCS.bcsSerializeU128(123)],
+      [new EntryFunctionArgumentAddress(TxnBuilderTypes.AccountAddress.fromHex(account4.address())),  new EntryFunctionArgumentU128(BigInt(123))],
     ),
   );
 
@@ -91,7 +96,7 @@ const FAUCET_URL = process.env.MOVEUP_FAUCET_URL;
     BigInt(1000000000),
     // Expiration timestamp. Transaction is discarded if it is not executed within 10 seconds from now.
     BigInt(Math.floor(Date.now() / 1000) + 10),
-    new TxnBuilderTypes.ChainId(chainId),
+    new TxnBuilderTypes.ChainId(BigInt(chainId)),
   );
 
   // account1 and account3 sign the transaction
