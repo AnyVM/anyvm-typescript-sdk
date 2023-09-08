@@ -9,7 +9,6 @@ import {
   TransactionBuilderMultiSecp256k1,
   TransactionBuilderRemoteABI,
 } from "../../transaction_builder";
-import { MoveupToken, TokenClient } from "../../plugins";
 import { HexString } from "../../utils";
 import { getFaucetClient, longTestTimeout, NODE_URL, PROVIDER_LOCAL_NETWORK_CONFIG } from "../unit/test_helper.test";
 import { bcsSerializeU128, bcsToBytes } from "../../bcs";
@@ -69,7 +68,7 @@ test("gets the Account resource", async () => {
 test("gets ledger info", async () => {
   const client = new MoveupClient(NODE_URL);
   const ledgerInfo = await client.getLedgerInfo();
-  expect(ledgerInfo.chain_id).toBeGreaterThan(1);
+  expect(BigInt(ledgerInfo.chain_id)).toBeGreaterThan(1);
   expect(parseInt(ledgerInfo.ledger_version, 10)).toBeGreaterThan(0);
 });
 
@@ -123,7 +122,6 @@ test(
     const rawTxn = await client.generateRawTransaction(account1.address(), scriptPayload);
     const bcsTxn = MoveupClient.generateBCSTransaction(account1, rawTxn);
     const transactionRes = await client.submitSignedBCSTransaction(bcsTxn);
-    console.log("transactionRes.hash is: ", transactionRes.hash);
 
     await client.waitForTransaction(transactionRes.hash);
 
@@ -143,7 +141,6 @@ test(
     let accountResource = resources.find((r) => r.type === moveupCoin);
     expect((accountResource!.data as any).coin.value).toBe("1000000000000000000");
 
-    // const account2 = new MoveupAccount(hexToBytes("5b23822d164aef6b5b617646b14c02aa892fad10787bff10134829f61ae832ba"));
     const account2 = new MoveupAccount();
     await faucetClient.fundAccount(account2.address(), 0);
     resources = await client.getAccountResources(account2.address());

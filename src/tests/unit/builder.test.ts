@@ -13,32 +13,13 @@ import {
 import { HexString } from "../../utils";
 
 describe.only("TransactionBuilderRemoteABI", () => {
-/*
-  test(
-    "generates raw txn from an entry function1",
-    async () => {
-      const client = new MoveupClient(NODE_URL);
-      const alice = new MoveupAccount();
-      const faucetClient = getFaucetClient();
-      await faucetClient.fundAccount(alice.address(), 100000000);
-      // Create an instance of the class
-      const builder = new TransactionBuilderRemoteABI(client, { sender: alice.address() });
-      const rawTxn = await builder.build(
-        "0x1::coin::freeze_coin_store", 
-        ["0x1::eth::ETH"], 
-        ["0x2b4d540735a4e128fda896f988415910a45cab41", "0x1::coin::FreezeCapability<T0>"]
-      );
-      expect(rawTxn instanceof RawTransaction).toBeTruthy();
-    }
-  );
-*/
   test(
     "generates raw txn from an entry function",
     async () => {
       const client = new MoveupClient(NODE_URL);
-      const alice = new MoveupAccount();
+      const alice = new MoveupAccount(new HexString("0x5b23822d164aef6b5b617646b14c02aa892fad10787bff10134829f61ae832ba").toUint8Array());
       const faucetClient = getFaucetClient();
-      await faucetClient.fundAccount(alice.address(), 100000000);
+      await faucetClient.fundAccount(alice.address(), 10000000000000000000);
       // Create an instance of the class
       const builder = new TransactionBuilderRemoteABI(client, { sender: alice.address() });
 
@@ -53,23 +34,23 @@ describe.only("TransactionBuilderRemoteABI", () => {
         is_entry: true,
         is_view: false,
         generic_type_params: [],
-        // params: ["&signer", "0x1::string::String"],
-        params: ["&signer", "0x1::string::String", "0x1::coin::Coin<0x1::eth::ETH>"],
+        params: ["&signer", "0x1::string::String", "0x1::object::Object<T>", "vector<u8>", "0x1::fixed_point32::FixedPoint32", "0x1::fixed_point64::FixedPoint64", "0x1::option::Option<u8>"],
         return: [],
         visibility: "public",
       });
       fetchABISpy.mockResolvedValue(abi);
 
       // Call the build method with some arguments
-      // const rawTxn = await builder.build("0x1::some_modules::SomeName", [], ["key"]);
-      const rawTxn = await builder.build("0x1::some_modules::SomeName", [], ["key", {"value" : 128}]);
+      const rawTxn = await builder.build("0x1::some_modules::SomeName", [], ["key", "0x5", [12, 23], 666, 888, null]);
+  
       expect(rawTxn instanceof RawTransaction).toBeTruthy();
       expect(rawTxn.sender.address).toEqual(new HexString(alice.address().hex()).toUint8Array());
       expect(rawTxn.payload instanceof TransactionPayloadEntryFunction).toBeTruthy();
       expect((rawTxn.payload as TransactionPayloadEntryFunction).value.module_name.name.value).toBe("some_modules");
       expect((rawTxn.payload as TransactionPayloadEntryFunction).value.function_name.value).toBe("SomeName");
       expect((rawTxn.payload as TransactionPayloadEntryFunction).value.ty_args).toHaveLength(0);
-      expect((rawTxn.payload as TransactionPayloadEntryFunction).value.args).toHaveLength(2);
+      expect((rawTxn.payload as TransactionPayloadEntryFunction).value.args).toHaveLength(6);
+
 
       // Restore the original implementation of the fetch method
       fetchABISpy.mockRestore();

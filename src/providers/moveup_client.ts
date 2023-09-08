@@ -25,19 +25,16 @@ import {
   TransactionBuilder,
 } from "../transaction_builder";
 import {
-  bcsSerializeBytes,
-  bcsSerializeU8,
   bcsToBytes,
   Bytes,
   Seq,
-  Serializer,
-  serializeVector,
   Uint64,
   AnyNumber,
 } from "../bcs";
-import { Secp256k1PublicKey, MultiSecp256k1PublicKey, TransactionAuthenticatorSecp256k1, Secp256k1Signature } from "../moveup_types";
+import { Secp256k1PublicKey, MultiSecp256k1PublicKey, TransactionAuthenticatorSecp256k1, Secp256k1Signature, TypeTagVector, TypeTagU8 } from "../moveup_types";
 import { VERSION } from "../version";
-import { EntryFunctionArgumentBcsBytes, EntryFunctionArgumentU8, SignedTransaction } from "../moveup_types/transaction";
+import { EntryFunctionArgumentU8, SignedTransaction } from "../moveup_types/transaction";
+import { argToEntryFunctionArgument } from "../transaction_builder/builder_utils";
 
 export interface OptionalTransactionArgs {
   maxGasAmount?: Uint64;
@@ -239,7 +236,7 @@ export class MoveupClient {
   }
 
   static generateEip712TypedData(rawTxn: TxnBuilderTypes.RawTransaction): string {
-    return TransactionBuilder.getEip712TypedData(rawTxn);
+    return JSON.stringify(TransactionBuilder.getEip712TypedData(rawTxn));
   }
 
   static generateBCSTransactionFromOutSign(accountFrom: MoveupAccount, rawTxn: TxnBuilderTypes.RawTransaction, outSign: string): Uint8Array {
@@ -687,9 +684,9 @@ export class MoveupClient {
    * @returns Current chain id
    */
   @Memoize()
-  async getChainId(): Promise<number> {
+  async getChainId(): Promise<Uint64> {
     const result = await this.getLedgerInfo();
-    return result.chain_id;
+    return BigInt(result.chain_id);
   }
 
   /**
@@ -780,16 +777,19 @@ export class MoveupClient {
     modules: Seq<TxnBuilderTypes.Module>,
     extraArgs?: OptionalTransactionArgs,
   ): Promise<string> {
-    const codeSerializer = new Serializer();
-    serializeVector(modules, codeSerializer);
+    const metadataSerialized = argToEntryFunctionArgument(packageMetadata, new TypeTagVector(new TypeTagU8()));
+    let modulesSeq: Bytes[] = [];
+    modules.forEach((module) => {
+      modulesSeq.push(module.code);
+    });
+    const codeArg = argToEntryFunctionArgument(modulesSeq, new TypeTagVector(new TypeTagVector(new TypeTagU8())));
 
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
       TxnBuilderTypes.EntryFunction.natural(
         "0x1::code",
         "publish_package_txn",
         [],
-        // [bcsSerializeBytes(packageMetadata), codeSerializer.getBytes()],
-        [new EntryFunctionArgumentBcsBytes(packageMetadata), new EntryFunctionArgumentBcsBytes(codeSerializer.getBytes())],
+        [metadataSerialized, codeArg],
       ),
     );
 
@@ -873,27 +873,23 @@ export class MoveupClient {
     const proofSignedByCurrentPrivateKey = forAccount.signHexString(challengeHex);
 
     const proofSignedByNewPrivateKey = helperAccount.signHexString(challengeHex);
+    const fromPublicKeyBytes = argToEntryFunctionArgument(forAccount.pubKey().toUint8Array(), new TypeTagVector(new TypeTagU8()));
+    const toPublicKeyBytes = argToEntryFunctionArgument(helperAccount.pubKey().toUint8Array(), new TypeTagVector(new TypeTagU8()));
+    const capRotateKey = argToEntryFunctionArgument(proofSignedByCurrentPrivateKey.toUint8Array(), new TypeTagVector(new TypeTagU8()));
+    const capUpdateTable = argToEntryFunctionArgument(proofSignedByNewPrivateKey.toUint8Array(), new TypeTagVector(new TypeTagU8()));
 
     const payload = new TxnBuilderTypes.TransactionPayloadEntryFunction(
       TxnBuilderTypes.EntryFunction.natural(
         "0x1::account",
         "rotate_authentication_key",
         [],
-        // [
-        //   bcsSerializeU8(0), // Secp256k1 scheme
-        //   bcsSerializeBytes(forAccount.pubKey().toUint8Array()),
-        //   bcsSerializeU8(0), // Secp256k1 scheme
-        //   bcsSerializeBytes(helperAccount.pubKey().toUint8Array()),
-        //   bcsSerializeBytes(proofSignedByCurrentPrivateKey.toUint8Array()),
-        //   bcsSerializeBytes(proofSignedByNewPrivateKey.toUint8Array()),
-        // ],
         [
           new EntryFunctionArgumentU8(0), // Secp256k1 scheme
-          new EntryFunctionArgumentBcsBytes(forAccount.pubKey().toUint8Array()),
+          fromPublicKeyBytes,
           new EntryFunctionArgumentU8(0), // Secp256k1 scheme
-          new EntryFunctionArgumentBcsBytes(helperAccount.pubKey().toUint8Array()),
-          new EntryFunctionArgumentBcsBytes(proofSignedByCurrentPrivateKey.toUint8Array()),
-          new EntryFunctionArgumentBcsBytes(proofSignedByNewPrivateKey.toUint8Array()),
+          toPublicKeyBytes,
+          capRotateKey,
+          capUpdateTable,
         ],
       ),
     );

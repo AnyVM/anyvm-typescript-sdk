@@ -41,6 +41,26 @@ import {
   EntryFunctionArgumentStruct,
   EntryFunctionArgumentString,
   StructType,
+  EntryFunctionArgumentOption,
+  EntryFunctionArgumentFixedPoint32,
+  EntryFunctionArgumentFixedPoint64,
+  EntryFunctionArgumentObject,
+  EntryFunctionArgumentKind,
+  EntryFunctionArgumentKindBool,
+  EntryFunctionArgumentKindU8,
+  EntryFunctionArgumentKindU16,
+  EntryFunctionArgumentKindU32,
+  EntryFunctionArgumentKindU64,
+  EntryFunctionArgumentKindU128,
+  EntryFunctionArgumentKindU256,
+  EntryFunctionArgumentKindAddress,
+  EntryFunctionArgumentKindVector,
+  EntryFunctionArgumentKindString,
+  EntryFunctionArgumentKindOption,
+  EntryFunctionArgumentKindObject,
+  EntryFunctionArgumentKindFixedPoint32,
+  EntryFunctionArgumentKindFixedPoint64,
+  EntryFunctionArgumentKindStruct,
  } from "../moveup_types/transaction";
 import { Serializer } from "../bcs";
 
@@ -244,13 +264,6 @@ export function argToEntryFunctionArgument(argVal: any, argType: TypeTag): Entry
     }
     return new EntryFunctionArgumentAddress(addr);
   }
-  // if (argType instanceof TypeTagVector && argType.value instanceof TypeTagU8) {
-  //   if (!(argVal instanceof Uint8Array)) {
-  //     throw new Error(`${argVal} should be an instance of Uint8Array`);
-  //   }
-  //   return new EntryFunctionArgumentBcsBytes(argVal);
-  // }
-  // if (argType instanceof TypeTagVector && !(argType.value instanceof TypeTagU8)) {
   if (argType instanceof TypeTagVector) {
     if (argType.value instanceof TypeTagU8) {
       if (typeof argVal === "string") {
@@ -261,18 +274,143 @@ export function argToEntryFunctionArgument(argVal: any, argType: TypeTag): Entry
         }
         argVal = numbers;
       }
+      if (argVal instanceof Uint8Array) {
+        const numbers: number[] = Array.from(argVal);
+        argVal = numbers;
+      }
     }
-    const elements = argVal.map((argValItem: any) => argToEntryFunctionArgument(argValItem, argType.value));
-    return new EntryFunctionArgumentVector(elements);
+
+    if (!Array.isArray(argVal)) {
+      throw new Error("Invalid vector args.");
+    }
+
+    let elements: EntryFunctionArgument[] = [];
+    if (argVal.length) {
+      elements = argVal.map((argValItem: any) => argToEntryFunctionArgument(argValItem, argType.value));
+      return new EntryFunctionArgumentVector(elements, null);
+    } else {
+      const kind = typeTagToEntryFunctionArgumentKind(argType.value);
+      return new EntryFunctionArgumentVector(elements, kind);
+    }
   }
   if (argType instanceof TypeTagStruct && argType.isStringTypeTag()) {
     return new EntryFunctionArgumentString(argVal);
   }
   if (argType instanceof TypeTagStruct && !(argType.isStringTypeTag())) {
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "option" &&
+      (argType as TypeTagStruct).value.name.value === "Option" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      if (argVal !== null) {
+        const optionTypeArg = argToEntryFunctionArgument(argVal, (argType as TypeTagStruct).value.type_args[0]);
+        return new EntryFunctionArgumentOption(optionTypeArg, null);
+      } else {
+        const kind = typeTagToEntryFunctionArgumentKind((argType as TypeTagStruct).value.type_args[0]);
+        return new EntryFunctionArgumentOption(null, kind);
+      }
+    }
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "object" &&
+      (argType as TypeTagStruct).value.name.value === "Object" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      let addr: AccountAddress;
+      if (typeof argVal === "string" || argVal instanceof HexString) {
+        addr = AccountAddress.fromHex(argVal);
+      } else if (argVal instanceof AccountAddress) {
+        addr = argVal;
+      } else {
+        throw new Error("Invalid account address.");
+      }
+      return new EntryFunctionArgumentObject(addr);
+    }
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "fixed_point32" &&
+      (argType as TypeTagStruct).value.name.value === "FixedPoint32" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      return new EntryFunctionArgumentFixedPoint32(ensureBigInt(argVal));
+    }
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "fixed_point64" &&
+      (argType as TypeTagStruct).value.name.value === "FixedPoint64" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      return new EntryFunctionArgumentFixedPoint64(ensureBigInt(argVal));
+    }
     let structType: StructType = {type_: null, fields: []};
     structType.type_ = (argType as TypeTagStruct).value;
     return new EntryFunctionArgumentStruct(structType);
   }
 
   throw new Error("Unknown type for EntryFunctionArgument.");
+}
+
+export function typeTagToEntryFunctionArgumentKind(argType: TypeTag): EntryFunctionArgumentKind {
+  if (argType instanceof TypeTagBool) {
+    return new EntryFunctionArgumentKindBool();
+  }
+  if (argType instanceof TypeTagU8) {
+    return new EntryFunctionArgumentKindU8();
+  }
+  if (argType instanceof TypeTagU16) {
+    return new EntryFunctionArgumentKindU16();
+  }
+  if (argType instanceof TypeTagU32) {
+    return new EntryFunctionArgumentKindU32();
+  }
+  if (argType instanceof TypeTagU64) {
+    return new EntryFunctionArgumentKindU64();
+  }
+  if (argType instanceof TypeTagU128) {
+    return new EntryFunctionArgumentKindU128();
+  }
+  if (argType instanceof TypeTagU256) {
+    return new EntryFunctionArgumentKindU256();
+  }
+  if (argType instanceof TypeTagAddress) {
+    return new EntryFunctionArgumentKindAddress();
+  }
+  if (argType instanceof TypeTagVector) {
+    const inner = typeTagToEntryFunctionArgumentKind(argType.value);
+    return new EntryFunctionArgumentKindVector(inner);
+  }
+  if (argType instanceof TypeTagStruct && argType.isStringTypeTag()) {
+    return new EntryFunctionArgumentKindString();
+  }
+  if (argType instanceof TypeTagStruct && !(argType.isStringTypeTag())) {
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "option" &&
+      (argType as TypeTagStruct).value.name.value === "Option" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      const inner = typeTagToEntryFunctionArgumentKind((argType as TypeTagStruct).value.type_args[0]);
+      return new EntryFunctionArgumentKindOption(inner);
+    }
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "object" &&
+      (argType as TypeTagStruct).value.name.value === "Object" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      return new EntryFunctionArgumentKindObject();
+    }
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "fixed_point32" &&
+      (argType as TypeTagStruct).value.name.value === "FixedPoint32" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      return new EntryFunctionArgumentKindFixedPoint32();
+    }
+    if (
+      (argType as TypeTagStruct).value.module_name.value === "fixed_point64" &&
+      (argType as TypeTagStruct).value.name.value === "FixedPoint64" &&
+      (argType as TypeTagStruct).value.address.toHexString() === AccountAddress.fromHex("0x1").toHexString()
+    ){
+      return new EntryFunctionArgumentKindFixedPoint64();
+    }
+    return new EntryFunctionArgumentKindStruct();
+  }
+
+  throw new Error("Unknown type for EntryFunctionArgumentKind.");
 }

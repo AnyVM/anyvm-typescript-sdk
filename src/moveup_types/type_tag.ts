@@ -417,7 +417,7 @@ export class TypeTagParser {
         // to support a nested type tag, i.e 0x1::some_module::SomeResource<0x1::object::Object<T>>, we want
         // to remove the `<T>` part from the tokens list so we dont parse it and can keep parse the type tag.
         this.tokens.splice(0, 3);
-        return new TypeTagAddress();
+        // return new TypeTagAddress();
       }
 
       let tyTags: TypeTag[] = [];

@@ -6,7 +6,8 @@ import { MoveupClient } from "../../providers/moveup_client";
 import { TokenClient } from "../../plugins/token_client";
 
 import { getFaucetClient, longTestTimeout, NODE_URL } from "../unit/test_helper.test";
-import { bcsSerializeBool } from "../../bcs";
+import { bcsSerializeBool, bcsSerializeU8 } from "../../bcs";
+import { HexString } from "../../utils";
 
 test(
   "full tutorial nft token flow",
@@ -39,12 +40,12 @@ test(
         "Alice's simple token",
         2,
         "https://moveup.dev/img/nyan.jpeg",
-        1000,
+        100000000000,
         alice.address(),
         1,
         0,
         ["TOKEN_BURNABLE_BY_OWNER"],
-        [bcsSerializeBool(true)],
+        [bcsSerializeU8(1)],
         ["bool"],
         [false, false, false, false, true],
       ),

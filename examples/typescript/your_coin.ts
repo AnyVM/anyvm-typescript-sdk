@@ -111,7 +111,9 @@ async function main() {
   // :!:>publish
   const modulePath = process.argv[2];
   const packageMetadata = fs.readFileSync(path.join(modulePath, "build", "Examples", "package-metadata.bcs"));
+  console.log("packageMetadata is: ", new HexString(packageMetadata.toString("hex")).toString());
   const moduleData = fs.readFileSync(path.join(modulePath, "build", "Examples", "bytecode_modules", "moon_coin.mv"));
+  console.log("moduleData is: ", new HexString(moduleData.toString("hex")).toString());
 
   console.log("Publishing MoonCoin package.");
   let txnHash = await client.publishPackage(alice, new HexString(packageMetadata.toString("hex")).toUint8Array(), [

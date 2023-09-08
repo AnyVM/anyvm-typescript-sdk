@@ -11,7 +11,6 @@ import * as Gen from "../generated/index";
 import { AccountAddress, AuthenticationKey, Secp256k1PublicKey } from "../moveup_types";
 import { bcsToBytes } from "../bcs";
 import { secp256k1 } from "ethereum-cryptography/secp256k1.js";
-import { ecsign, fromRpcSig, ecrecover, pubToAddress } from 'ethereumjs-util';
 
 export interface MoveupAccountObject {
   address?: Gen.HexEncodedBytes;

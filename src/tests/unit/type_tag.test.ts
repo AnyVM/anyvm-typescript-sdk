@@ -94,7 +94,7 @@ describe("TypeTagParser", () => {
       const typeTag = "0x1::object::Object<T>";
       const parser = new TypeTagParser(typeTag);
       const result = parser.parseTypeTag();
-      expect(result instanceof TypeTagAddress).toBeTruthy();
+      expect(result instanceof TypeTagStruct).toBeTruthy();
     });
 
     test("TypeTagParser successfully parses a strcut with a nested Object type", () => {
@@ -104,7 +104,7 @@ describe("TypeTagParser", () => {
       expect(result.value.address.toHexString()).toEqual(expectedTypeTag.address);
       expect(result.value.module_name.value).toEqual("some_module");
       expect(result.value.name.value).toEqual("SomeResource");
-      expect(result.value.type_args[0] instanceof TypeTagAddress).toBeTruthy();
+      expect(result.value.type_args[0] instanceof TypeTagStruct).toBeTruthy();
     });
 
     test("TypeTagParser successfully parses a strcut with a nested Object and Struct types", () => {
@@ -115,7 +115,7 @@ describe("TypeTagParser", () => {
       expect(result.value.module_name.value).toEqual("some_module");
       expect(result.value.name.value).toEqual("SomeResource");
       expect(result.value.type_args.length).toEqual(2);
-      expect(result.value.type_args[0] instanceof TypeTagAddress).toBeTruthy();
+      expect(result.value.type_args[0] instanceof TypeTagStruct).toBeTruthy();
       expect(result.value.type_args[1] instanceof TypeTagStruct).toBeTruthy();
     });
   });

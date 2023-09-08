@@ -80,6 +80,7 @@ import { NODE_URL, FAUCET_URL } from "./common";
     "Alice's simple token",
     1,
     "https://moveup.dev/img/nyan.jpeg",
+    1000000000000,
   ); // <:!:section_5
   await client.waitForTransaction(txnHash2, { checkSuccess: true });
 

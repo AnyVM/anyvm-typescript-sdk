@@ -749,6 +749,166 @@ export function TransactionArgumentToString(args: Seq<TransactionArgument>): str
   return stringArray;
 }
 
+export abstract class EntryFunctionArgumentKind {
+  abstract serialize(serializer: Serializer): void;
+  static deserialize(deserializer: Deserializer): EntryFunctionArgumentKind {
+    const index = deserializer.deserializeUleb128AsU32();
+    switch (index) {
+      case 0:
+        return new EntryFunctionArgumentKindU8();
+      case 1:
+        return new EntryFunctionArgumentKindU16();
+      case 2:
+        return new EntryFunctionArgumentKindU32();
+      case 3:
+        return new EntryFunctionArgumentKindU64();
+      case 4:
+        return new EntryFunctionArgumentKindU128();
+      case 5:
+        return new EntryFunctionArgumentKindU256();
+      case 6:
+        return new EntryFunctionArgumentKindBool();
+      case 7:
+        return new EntryFunctionArgumentKindAddress();
+      case 8:
+        return new EntryFunctionArgumentKindString();
+      case 9:
+        return EntryFunctionArgumentKindOption.load(deserializer);
+      case 10:
+        return new EntryFunctionArgumentKindObject();
+      case 11:
+        return new EntryFunctionArgumentKindFixedPoint32();
+      case 12:
+        return new EntryFunctionArgumentKindFixedPoint64();
+      case 13:
+        return EntryFunctionArgumentKindVector.load(deserializer);
+      case 14:
+        return new EntryFunctionArgumentKindStruct();
+      case 15:
+        return new EntryFunctionArgumentKindBcsBytes();
+      default:
+        throw new Error(
+          `Unknown variant index for EntryFunctionArgumentKind: ${index}`
+        );
+    }
+  }
+}
+
+export class EntryFunctionArgumentKindU8 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(0);
+  }
+}
+
+export class EntryFunctionArgumentKindU16 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(1);
+  }
+}
+
+export class EntryFunctionArgumentKindU32 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(2);
+  }
+}
+
+export class EntryFunctionArgumentKindU64 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(3);
+  }
+}
+
+export class EntryFunctionArgumentKindU128 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(4);
+  }
+}
+
+export class EntryFunctionArgumentKindU256 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(5);
+  }
+}
+
+export class EntryFunctionArgumentKindBool extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(6);
+  }
+}
+
+export class EntryFunctionArgumentKindAddress extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(7);
+  }
+}
+
+export class EntryFunctionArgumentKindString extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(8);
+  }
+}
+
+export class EntryFunctionArgumentKindOption extends EntryFunctionArgumentKind {
+  constructor(public readonly inner: EntryFunctionArgumentKind) {
+    super();
+  }
+
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(9);
+    this.inner.serialize(serializer);
+  }
+
+  static load(deserializer: Deserializer): EntryFunctionArgumentKindOption {
+    const value = EntryFunctionArgumentKind.deserialize(deserializer);
+    return new EntryFunctionArgumentKindOption(value);
+  }
+}
+
+export class EntryFunctionArgumentKindObject extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(10);
+  }
+}
+
+export class EntryFunctionArgumentKindFixedPoint32 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(11);
+  }
+}
+
+export class EntryFunctionArgumentKindFixedPoint64 extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(12);
+  }
+}
+
+export class EntryFunctionArgumentKindVector extends EntryFunctionArgumentKind {
+  constructor(public readonly inner: EntryFunctionArgumentKind) {
+    super();
+  }
+
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(13);
+    this.inner.serialize(serializer);
+  }
+
+  static load(deserializer: Deserializer): EntryFunctionArgumentKindVector {
+    const value = EntryFunctionArgumentKind.deserialize(deserializer);
+    return new EntryFunctionArgumentKindVector(value);
+  }
+}
+
+export class EntryFunctionArgumentKindStruct extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(14);
+  }
+}
+
+export class EntryFunctionArgumentKindBcsBytes extends EntryFunctionArgumentKind {
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(15);
+  }
+}
 
 export abstract class EntryFunctionArgument {
   abstract serialize(serializer: Serializer): void;
@@ -775,10 +935,18 @@ export abstract class EntryFunctionArgument {
       case 8:
         return EntryFunctionArgumentString.load(deserializer);
       case 9:
-        return EntryFunctionArgumentVector.load(deserializer);
+        return EntryFunctionArgumentOption.load(deserializer);
       case 10:
-        return EntryFunctionArgumentStruct.load(deserializer);
+        return EntryFunctionArgumentObject.load(deserializer);
       case 11:
+        return EntryFunctionArgumentFixedPoint32.load(deserializer);
+      case 12:
+        return EntryFunctionArgumentFixedPoint64.load(deserializer);
+      case 13:
+        return EntryFunctionArgumentVector.load(deserializer);
+      case 14:
+        return EntryFunctionArgumentStruct.load(deserializer);
+      case 15:
         return EntryFunctionArgumentBcsBytes.load(deserializer);
       default:
         throw new Error(
@@ -932,27 +1100,123 @@ export class EntryFunctionArgumentString extends EntryFunctionArgument {
   }
 }
 
-export class EntryFunctionArgumentVector extends EntryFunctionArgument {
-  constructor(public readonly elements: EntryFunctionArgument[]) {
+export class EntryFunctionArgumentOption extends EntryFunctionArgument {
+  constructor(
+    public readonly value: EntryFunctionArgument | null,
+    public readonly kind: EntryFunctionArgumentKind | null,
+  ) {
     super();
   }
 
   serialize(serializer: Serializer): void {
     serializer.serializeU32AsUleb128(9);
-    serializer.serializeU32AsUleb128(this.elements.length);
-    for (const element of this.elements) {
-      element.serialize(serializer);
+    if (this.value !== null) {
+      serializer.serializeU32AsUleb128(0);
+      this.value.serialize(serializer);
+    } else {
+      serializer.serializeU32AsUleb128(1);
+      (this.kind as EntryFunctionArgumentKind).serialize(serializer);
+    }
+  }
+
+  static load(deserializer: Deserializer): EntryFunctionArgumentOption {
+    const hasValue = deserializer.deserializeUleb128AsU32();
+    let value: EntryFunctionArgument | null = null;
+    let kind: EntryFunctionArgumentKind | null = null;
+    if (hasValue === 0) {
+      value = EntryFunctionArgument.deserialize(deserializer);
+    } else {
+      kind = EntryFunctionArgumentKind.deserialize(deserializer);
+    }
+    return new EntryFunctionArgumentOption(value, kind);
+  }
+}
+
+export class EntryFunctionArgumentObject extends EntryFunctionArgument {
+  constructor(public readonly value: AccountAddress) {
+    super();
+  }
+
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(10);
+    this.value.serialize(serializer);
+  }
+
+  static load(deserializer: Deserializer): EntryFunctionArgumentObject {
+    const value = AccountAddress.deserialize(deserializer);
+    return new EntryFunctionArgumentObject(value);
+  }
+}
+
+export class EntryFunctionArgumentFixedPoint32 extends EntryFunctionArgument {
+  constructor(public readonly value: Uint64) {
+    super();
+  }
+
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(11);
+    serializer.serializeU64(this.value);
+  }
+
+  static load(deserializer: Deserializer): EntryFunctionArgumentFixedPoint32 {
+    const value = deserializer.deserializeU64();
+    return new EntryFunctionArgumentFixedPoint32(value);
+  }
+}
+
+export class EntryFunctionArgumentFixedPoint64 extends EntryFunctionArgument {
+  constructor(public readonly value: Uint128) {
+    super();
+  }
+
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(12);
+    serializer.serializeU128(this.value);
+  }
+
+  static load(deserializer: Deserializer): EntryFunctionArgumentFixedPoint64 {
+    const value = deserializer.deserializeU128();
+    return new EntryFunctionArgumentFixedPoint64(value);
+  }
+}
+
+export class EntryFunctionArgumentVector extends EntryFunctionArgument {
+  constructor(
+    public readonly value: EntryFunctionArgument[],
+    public readonly kind: EntryFunctionArgumentKind | null,
+  ) {
+    super();
+  }
+
+  serialize(serializer: Serializer): void {
+    serializer.serializeU32AsUleb128(13);
+    if (this.value.length > 0) {
+      serializer.serializeU32AsUleb128(0);
+      serializer.serializeU32AsUleb128(this.value.length);
+      for (const element of this.value) {
+        element.serialize(serializer);
+      }
+    } else {
+      serializer.serializeU32AsUleb128(1);
+      (this.kind as EntryFunctionArgumentKind).serialize(serializer);
     }
   }
 
   static load(deserializer: Deserializer): EntryFunctionArgumentVector {
-    const length = deserializer.deserializeUleb128AsU32();
-    const elements: EntryFunctionArgument[] = [];
-    for (let i = 0; i < length; i++) {
-      const element = EntryFunctionArgument.deserialize(deserializer);
-      elements.push(element);
+    const hasValue = deserializer.deserializeUleb128AsU32();
+    let kind: EntryFunctionArgumentKind | null = null;
+    if (hasValue === 0) {
+      const length = deserializer.deserializeUleb128AsU32();
+      const elements: EntryFunctionArgument[] = [];
+      for (let i = 0; i < length; i++) {
+        const element = EntryFunctionArgument.deserialize(deserializer);
+        elements.push(element);
+      }
+      return new EntryFunctionArgumentVector(elements, kind);
+    } else {
+      kind = EntryFunctionArgumentKind.deserialize(deserializer);
+      return new EntryFunctionArgumentVector([], kind);
     }
-    return new EntryFunctionArgumentVector(elements);
   }
 }
 
@@ -967,7 +1231,7 @@ export class EntryFunctionArgumentStruct extends EntryFunctionArgument {
   }
 
   serialize(serializer: Serializer): void {
-    serializer.serializeU32AsUleb128(10);
+    serializer.serializeU32AsUleb128(14);
     this.structType.type_?.serialize(serializer);
     serializer.serializeU32AsUleb128(this.structType.fields.length);
     for (const [identifier, entryFunctionArgument] of this.structType.fields) {
@@ -992,43 +1256,14 @@ export class EntryFunctionArgumentStruct extends EntryFunctionArgument {
     return new EntryFunctionArgumentStruct(structType);
   }
 }
-/*
-export class EntryFunctionArgumentStruct extends EntryFunctionArgument {
-  constructor(public readonly fields: { [key: string]: EntryFunctionArgument }) {
-    super();
-  }
 
-  serialize(serializer: Serializer): void {
-    serializer.serializeU32AsUleb128(10);
-    const fieldCount = Object.keys(this.fields).length;
-    serializer.serializeU32AsUleb128(fieldCount);
-    for (const fieldName in this.fields) {
-      if (this.fields.hasOwnProperty(fieldName)) {
-        serializer.serializeStr(fieldName);
-        this.fields[fieldName].serialize(serializer);
-      }
-    }
-  }
-
-  static load(deserializer: Deserializer): EntryFunctionArgumentStruct {
-    const fieldCount = deserializer.deserializeUleb128AsU32();
-    const fields: { [key: string]: EntryFunctionArgument } = {};
-    for (let i = 0; i < fieldCount; i++) {
-      const fieldName = deserializer.deserializeStr();
-      const fieldValue = EntryFunctionArgument.deserialize(deserializer);
-      fields[fieldName] = fieldValue;
-    }
-    return new EntryFunctionArgumentStruct(fields);
-  }
-}
-*/
 export class EntryFunctionArgumentBcsBytes extends EntryFunctionArgument {
   constructor(public readonly value: Bytes) {
     super();
   }
 
   serialize(serializer: Serializer): void {
-    serializer.serializeU32AsUleb128(11);
+    serializer.serializeU32AsUleb128(15);
     serializer.serializeBytes(this.value);
   }
 
@@ -1051,54 +1286,61 @@ export function EntryFunctionArgumentToString(args: Seq<EntryFunctionArgument>):
 
   for (let i=0; i < len; i++) {
     if (args[i] instanceof EntryFunctionArgumentU8) {
-      argsObject[i.toString()] = (args[i] as EntryFunctionArgumentU8).value;
+      argsObject[i.toString().padStart(3, '0')] = (args[i] as EntryFunctionArgumentU8).value;
     }
     if (args[i] instanceof EntryFunctionArgumentU16) {
-      argsObject[i.toString()] = (args[i] as EntryFunctionArgumentU16).value;
+      argsObject[i.toString().padStart(3, '0')] = (args[i] as EntryFunctionArgumentU16).value;
     }
     if (args[i] instanceof EntryFunctionArgumentU32) {
-      argsObject[i.toString()] = (args[i] as EntryFunctionArgumentU32).value;
+      argsObject[i.toString().padStart(3, '0')] = (args[i] as EntryFunctionArgumentU32).value;
     }
-    if (args[i] instanceof EntryFunctionArgumentU64) {
-      argsObject[i.toString()] = Number((args[i] as EntryFunctionArgumentU64).value);
+    if (args[i] instanceof EntryFunctionArgumentU64 || args[i] instanceof EntryFunctionArgumentFixedPoint32) {
+      argsObject[i.toString().padStart(3, '0')] = Number((args[i] as EntryFunctionArgumentU64).value);
     }
-    if (args[i] instanceof EntryFunctionArgumentU128) {
-      argsObject[i.toString()] = Number((args[i] as EntryFunctionArgumentU128).value);
+    if (args[i] instanceof EntryFunctionArgumentU128 || args[i] instanceof EntryFunctionArgumentFixedPoint64) {
+      argsObject[i.toString().padStart(3, '0')] = Number((args[i] as EntryFunctionArgumentU128).value);
     }
     if (args[i] instanceof EntryFunctionArgumentU256) {
-      argsObject[i.toString()] = Number((args[i] as EntryFunctionArgumentU256).value);
+      argsObject[i.toString().padStart(3, '0')] = Number((args[i] as EntryFunctionArgumentU256).value);
     }
     if (args[i] instanceof EntryFunctionArgumentBool) {
       if ((args[i] as EntryFunctionArgumentBool).value) {
-        argsObject[i.toString()] = true;
+        argsObject[i.toString().padStart(3, '0')] = true;
       }
       else {
-        argsObject[i.toString()] = false;
+        argsObject[i.toString().padStart(3, '0')] = false;
       }
     }
-    if (args[i] instanceof EntryFunctionArgumentAddress) {
-      argsObject[i.toString()] = HexString.fromUint8Array((args[i] as EntryFunctionArgumentAddress).value.address).toString();
+    if (args[i] instanceof EntryFunctionArgumentAddress || args[i] instanceof EntryFunctionArgumentObject) {
+      argsObject[i.toString().padStart(3, '0')] = HexString.fromUint8Array((args[i] as EntryFunctionArgumentAddress).value.address).toString();
     }
     if (args[i] instanceof EntryFunctionArgumentString) {
-      argsObject[i.toString()] = (args[i] as EntryFunctionArgumentString).value;
+      argsObject[i.toString().padStart(3, '0')] = (args[i] as EntryFunctionArgumentString).value;
+    }
+    if (args[i] instanceof EntryFunctionArgumentOption) {
+      if ((args[i] as EntryFunctionArgumentOption).value  !== null) {
+        argsObject[i.toString().padStart(3, '0')] = EntryFunctionArgumentVectorToString([(args[i] as EntryFunctionArgumentOption).value as EntryFunctionArgument]);
+      } else {
+        argsObject[i.toString().padStart(3, '0')] = [];
+      }
     }
     if (args[i] instanceof EntryFunctionArgumentVector) {
-      argsObject[i.toString()] = EntryFunctionArgumentVectorToString((args[i] as EntryFunctionArgumentVector).elements);
+      argsObject[i.toString().padStart(3, '0')] = EntryFunctionArgumentVectorToString((args[i] as EntryFunctionArgumentVector).value);
     }
     if (args[i] instanceof EntryFunctionArgumentBcsBytes) {
-      argsObject[i.toString()] = "raw " + HexString.fromUint8Array((args[i] as EntryFunctionArgumentBcsBytes).value).toString();
+      argsObject[i.toString().padStart(3, '0')] = "raw " + HexString.fromUint8Array((args[i] as EntryFunctionArgumentBcsBytes).value).toString();
     }
     if (args[i] instanceof EntryFunctionArgumentStruct) {
       if ((args[i] as EntryFunctionArgumentStruct).structType.type_) {
         const tyArgs = [new TypeTagStruct(((args[i] as EntryFunctionArgumentStruct).structType.type_) as StructTag)];
-        argsObject[i.toString()] = "struct " + TypeTagToString(tyArgs) + ": ";
+        argsObject[i.toString().padStart(3, '0')] = "struct " + TypeTagToString(tyArgs) + ": ";
       }
       let serializer: Serializer = new Serializer();
       for (const [identifier, entryFunctionArgument] of (args[i] as EntryFunctionArgumentStruct).structType.fields) {
         identifier?.serialize(serializer);
         entryFunctionArgument.serialize(serializer);
       }
-      argsObject[i.toString()] += HexString.fromUint8Array(serializer.getBytes()).toString();
+      argsObject[i.toString().padStart(3, '0')] += HexString.fromUint8Array(serializer.getBytes()).toString();
     }
   }
   return argsObject;
@@ -1115,7 +1357,7 @@ export function EntryFunctionArgumentToEip712String(args: Seq<EntryFunctionArgum
 
   for (let i = 0; i < len; i++) {
     let obj: MyObject = {
-      name: i.toString(),
+      name: i.toString().padStart(3, '0'),
       type: ""
     };
 
@@ -1128,10 +1370,10 @@ export function EntryFunctionArgumentToEip712String(args: Seq<EntryFunctionArgum
     if (args[i] instanceof EntryFunctionArgumentU32) {
       obj.type = "uint32";
     }
-    if (args[i] instanceof EntryFunctionArgumentU64) {
+    if (args[i] instanceof EntryFunctionArgumentU64 || args[i] instanceof EntryFunctionArgumentFixedPoint32) {
       obj.type = "uint64";
     }
-    if (args[i] instanceof EntryFunctionArgumentU128) {
+    if (args[i] instanceof EntryFunctionArgumentU128 || args[i] instanceof EntryFunctionArgumentFixedPoint64) {
       obj.type = "uint128";
     }
     if (args[i] instanceof EntryFunctionArgumentU256) {
@@ -1140,17 +1382,31 @@ export function EntryFunctionArgumentToEip712String(args: Seq<EntryFunctionArgum
     if (args[i] instanceof EntryFunctionArgumentBool) {
       obj.type = "bool";
     }
-    if (args[i] instanceof EntryFunctionArgumentAddress) {
+    if (args[i] instanceof EntryFunctionArgumentAddress || args[i] instanceof EntryFunctionArgumentObject) {
       obj.type = "address";
     }
     if (args[i] instanceof EntryFunctionArgumentString) {
       obj.type = "string";
     }
     if (args[i] instanceof EntryFunctionArgumentVector) {
-      const element: EntryFunctionArgument = (args[i] as EntryFunctionArgumentVector).elements[0];
-      const seqs: Seq<EntryFunctionArgument> = [element];
-      const vectorSeqs = EntryFunctionArgumentToEip712String(seqs);
-      obj.type = vectorSeqs[0].type + "[]";
+      if ((args[i] as EntryFunctionArgumentVector).value.length) {
+        const element: EntryFunctionArgument = (args[i] as EntryFunctionArgumentVector).value[0];
+        const seqs: Seq<EntryFunctionArgument> = [element];
+        const vectorSeqs = EntryFunctionArgumentToEip712String(seqs);
+        obj.type = vectorSeqs[0].type + "[]";
+      } else {
+        obj.type = EntryFunctionArgumentKindToEip712String((args[i] as EntryFunctionArgumentVector).kind as EntryFunctionArgumentKind) + "[]";
+      }
+    }
+    if (args[i] instanceof EntryFunctionArgumentOption) {
+      if ((args[i] as EntryFunctionArgumentOption).value !== null ) {
+        const element: EntryFunctionArgument = (args[i] as EntryFunctionArgumentOption).value as EntryFunctionArgument;
+        const seqs: Seq<EntryFunctionArgument> = [element];
+        const vectorSeqs = EntryFunctionArgumentToEip712String(seqs);
+        obj.type = vectorSeqs[0].type + "[]";
+      } else {
+        obj.type = EntryFunctionArgumentKindToEip712String((args[i] as EntryFunctionArgumentOption).kind as EntryFunctionArgumentKind) + "[]";
+      }
     }
     if (args[i] instanceof EntryFunctionArgumentStruct) {
       obj.type = "string";
@@ -1182,10 +1438,10 @@ export function EntryFunctionArgumentVectorToString(args: EntryFunctionArgument[
     if (args[i] instanceof EntryFunctionArgumentU32) {
       argsValues.push((args[i] as EntryFunctionArgumentU32).value);
     }
-    if (args[i] instanceof EntryFunctionArgumentU64) {
+    if (args[i] instanceof EntryFunctionArgumentU64 || args[i] instanceof EntryFunctionArgumentFixedPoint32) {
       argsValues.push(Number((args[i] as EntryFunctionArgumentU64).value));
     }
-    if (args[i] instanceof EntryFunctionArgumentU128) {
+    if (args[i] instanceof EntryFunctionArgumentU128 || args[i] instanceof EntryFunctionArgumentFixedPoint64) {
       argsValues.push(Number((args[i] as EntryFunctionArgumentU128).value));
     }
     if (args[i] instanceof EntryFunctionArgumentU256) {
@@ -1199,15 +1455,60 @@ export function EntryFunctionArgumentVectorToString(args: EntryFunctionArgument[
         argsValues.push(false);
       }
     }
-    if (args[i] instanceof EntryFunctionArgumentAddress) {
+    if (args[i] instanceof EntryFunctionArgumentAddress || args[i] instanceof EntryFunctionArgumentObject) {
       argsValues.push(HexString.fromUint8Array((args[i] as EntryFunctionArgumentAddress).value.address).toString());
     }
     if (args[i] instanceof EntryFunctionArgumentString) {
-      argsValues.push((args[i] as EntryFunctionArgumentString).value);
+      if ((args[i] as EntryFunctionArgumentString).value.length) {
+        argsValues.push((args[i] as EntryFunctionArgumentString).value);
+      }
     }
     if (args[i] instanceof EntryFunctionArgumentVector) {
-      argsValues.push(EntryFunctionArgumentVectorToString((args[i] as EntryFunctionArgumentVector).elements));
+      argsValues.push(EntryFunctionArgumentVectorToString((args[i] as EntryFunctionArgumentVector).value));
     }
   }
   return argsValues;
+}
+
+export function EntryFunctionArgumentKindToEip712String(kind: EntryFunctionArgumentKind): string {
+  if (kind instanceof EntryFunctionArgumentKindU8) {
+    return "uint8";
+  }
+  if (kind instanceof EntryFunctionArgumentKindU16) {
+    return "uint16";
+  }
+  if (kind instanceof EntryFunctionArgumentKindU32) {
+    return "uint32";
+  }
+  if (kind instanceof EntryFunctionArgumentKindU64 || kind instanceof EntryFunctionArgumentKindFixedPoint32) {
+    return "uint64";
+  }
+  if (kind instanceof EntryFunctionArgumentKindU128 || kind instanceof EntryFunctionArgumentKindFixedPoint64) {
+    return "uint128";
+  }
+  if (kind instanceof EntryFunctionArgumentKindU256) {
+    return "uint256";
+  }
+  if (kind instanceof EntryFunctionArgumentKindBool) {
+    return "bool";
+  }
+  if (kind instanceof EntryFunctionArgumentKindAddress || kind instanceof EntryFunctionArgumentKindObject) {
+    return "address";
+  }
+  if (kind instanceof EntryFunctionArgumentKindString) {
+    return "string";
+  }
+  if (kind instanceof EntryFunctionArgumentKindOption) {
+    return EntryFunctionArgumentKindToEip712String((kind as EntryFunctionArgumentKindOption).inner) + "[]";
+  }
+  if (kind instanceof EntryFunctionArgumentKindVector) {
+    return EntryFunctionArgumentKindToEip712String((kind as EntryFunctionArgumentKindVector).inner) + '[]';
+  }
+  if (kind instanceof EntryFunctionArgumentKindBcsBytes) {
+    return "string";
+  }
+  if (kind instanceof EntryFunctionArgumentKindStruct) {
+    return "string";
+  }
+  return "";
 }

@@ -13,7 +13,7 @@ export type IndexResponse = {
     /**
      * Chain ID of the current chain
      */
-    chain_id: number;
+    chain_id: U64;
     epoch: U64;
     ledger_version: U64;
     oldest_ledger_version: U64;
