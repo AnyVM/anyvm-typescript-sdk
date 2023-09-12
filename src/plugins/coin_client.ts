@@ -71,7 +71,6 @@ export class CoinClient {
     const rawTxn = await builder.build(func, [coinTypeToTransfer], [toAddress, amount]);
 
     const bcsTxn = MoveupClient.generateBCSTransaction(from, rawTxn);
-    // console.log('bcsTxn is : ', bytesToHex(bcsTxn))
     const pendingTransaction = await this.moveupClient.submitSignedBCSTransaction(bcsTxn);
     return pendingTransaction.hash;
   } // <:!:transfer

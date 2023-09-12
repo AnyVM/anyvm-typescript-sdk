@@ -17,7 +17,7 @@ describe.only("TransactionBuilderRemoteABI", () => {
     "generates raw txn from an entry function",
     async () => {
       const client = new MoveupClient(NODE_URL);
-      const alice = new MoveupAccount(new HexString("0x5b23822d164aef6b5b617646b14c02aa892fad10787bff10134829f61ae832ba").toUint8Array());
+      const alice = new MoveupAccount();
       const faucetClient = getFaucetClient();
       await faucetClient.fundAccount(alice.address(), 10000000000000000000);
       // Create an instance of the class
@@ -42,7 +42,7 @@ describe.only("TransactionBuilderRemoteABI", () => {
 
       // Call the build method with some arguments
       const rawTxn = await builder.build("0x1::some_modules::SomeName", [], ["key", "0x5", [12, 23], 666, 888, null]);
-  
+
       expect(rawTxn instanceof RawTransaction).toBeTruthy();
       expect(rawTxn.sender.address).toEqual(new HexString(alice.address().hex()).toUint8Array());
       expect(rawTxn.payload instanceof TransactionPayloadEntryFunction).toBeTruthy();
